@@ -1,36 +1,13 @@
 package com.frcteam3636.swervebase.subsystems.drivetrain.Intake
-import com.ctre.phoenix6.configs.CANcoderConfiguration
-import com.ctre.phoenix6.configs.CurrentLimitsConfigs
 import com.ctre.phoenix6.configs.TalonFXConfiguration
-import com.ctre.phoenix6.controls.MotionMagicVoltage
-import com.ctre.phoenix6.signals.FeedbackSensorSourceValue
 import com.ctre.phoenix6.signals.InvertedValue
-import com.ctre.phoenix6.signals.NeutralModeValue
-import com.ctre.phoenix6.signals.SensorDirectionValue
-import com.frcteam3636.swervebase.CANcoder
 import com.frcteam3636.swervebase.CTREDeviceId
 import com.frcteam3636.swervebase.TalonFX
-import com.frcteam3636.swervebase.utils.math.PIDGains
-import com.frcteam3636.swervebase.utils.math.amps
-import com.frcteam3636.swervebase.utils.math.degrees
-import com.frcteam3636.swervebase.utils.math.degreesPerSecond
-import com.frcteam3636.swervebase.utils.math.degreesPerSecondPerSecond
-import com.frcteam3636.swervebase.utils.math.inRadians
-import com.frcteam3636.swervebase.utils.math.inRotationsPerSecond
-import com.frcteam3636.swervebase.utils.math.inRotationsPerSecondPerSecond
-import com.frcteam3636.swervebase.utils.math.inVolts
-import com.frcteam3636.swervebase.utils.math.pidGains
-import com.frcteam3636.swervebase.utils.math.rotationsPerSecond
-import com.frcteam3636.swervebase.utils.math.rotationsPerSecondPerSecond
-import com.frcteam3636.swervebase.utils.math.volts
+import com.frcteam3636.swervebase.utils.math.*
 import edu.wpi.first.units.Units.Amps
-import edu.wpi.first.units.Units.Volts
-import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.units.measure.Voltage
 import org.littletonrobotics.junction.Logger
 import org.team9432.annotation.Logged
-import kotlin.apply
-import kotlin.math.sin
 
 @Logged
 open class IntakeInputs {
@@ -65,18 +42,12 @@ class IntakeIOReal : IntakeIO {
         })
     }
 
-    private val encoder =  CANcoder(CTREDeviceId.IntakePivotEncoder).apply {
-        configurator.apply(CANcoderConfiguration().apply {
-            MagnetSensor.SensorDirection = SensorDirectionValue.Clockwise_Positive
-        })
-        setPosition(0.degrees)
-    }
     override fun setSpeed(percent: Double) {
         intakeMotor.set(percent)
     }
 
     override fun setVoltage(voltage: Voltage) {
-        Logger.recordOutput("Intake/Pivot Attempted Voltage", voltage)
+        Logger.recordOutput("Intake Did Voltage", voltage)
         intakeMotor.setVoltage(voltage.inVolts())
     }
 

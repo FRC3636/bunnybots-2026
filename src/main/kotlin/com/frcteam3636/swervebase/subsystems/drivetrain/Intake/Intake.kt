@@ -3,24 +3,15 @@ package com.frcteam3636.swervebase.subsystems.intake
 import com.frcteam3636.swervebase.Robot
 import com.frcteam3636.swervebase.subsystems.drivetrain.Intake.IntakeIO
 import com.frcteam3636.swervebase.subsystems.drivetrain.Intake.IntakeIOReal
-import edu.wpi.first.units.measure.Angle
-import edu.wpi.first.units.measure.Voltage
-import edu.wpi.first.wpilibj2.command.Command
-import edu.wpi.first.wpilibj2.command.Commands
-import edu.wpi.first.wpilibj2.command.Subsystem
-import edu.wpi.first.wpilibj2.command.button.Trigger
-import org.littletonrobotics.junction.Logger
+import com.frcteam3636.swervebase.subsystems.drivetrain.Intake.LoggedIntakeInputs
 import com.frcteam3636.swervebase.utils.math.degrees
 import com.frcteam3636.swervebase.utils.math.volts
-import kotlin.math.abs
+import edu.wpi.first.units.measure.Angle
+import edu.wpi.first.wpilibj2.command.Command
+import edu.wpi.first.wpilibj2.command.Subsystem
+import org.littletonrobotics.junction.Logger
 
 object Intake : Subsystem {
-
-    enum class Position(val angle: Angle) {
-        Deployed(110.degrees),
-        Stowed(75.degrees),
-        Back(10.degrees),
-    }
 
     private val io: IntakeIO =
         when (Robot.model) {
@@ -30,8 +21,6 @@ object Intake : Subsystem {
         }
 
     private val inputs = LoggedIntakeInputs()
-
-
 
     fun intake(): Command =
         runEnd(
