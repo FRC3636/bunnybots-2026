@@ -35,6 +35,7 @@ import kotlin.math.sin
 @Logged
 open class IntakeInputs {
     var intakeMotorVelocity = 0.rotationsPerSecond
+    var intakeMotorCurrent = Amps.zero()!!
 }
 
 interface IntakeIO {
@@ -58,39 +59,29 @@ class IntakeIOReal : IntakeIO {
         val PIVOT_MOTOR_DIRECTION = InvertedValue.CounterClockwise_Positive
         val WHEEL_MOTOR_DIRECTION = InvertedValue.CounterClockwise_Positive
     }
-
-    private var intakeMotor = TalonFX(CTREDeviceId.IntakeMotor).apply {
-        configurator.apply(TalonFXConfiguration().apply {
-            Slot0.apply {
-                pidGains = PID_GAINS
-            }
-            MotionMagic.apply {
-                MotionMagicCruiseVelocity = PROFILE_CRUISE_VELOCITY.inRotationsPerSecond()
-                MotionMagicAcceleration = PROFILE_ACCELERATION.inRotationsPerSecondPerSecond()
-                MotionMagicJerk = PROFILE_JERK
-            }
-            Feedback.apply {
-                FeedbackSensorSource = FeedbackSensorSourceValue.RemoteCANcoder
-                FeedbackRemoteSensorID = CTREDeviceId.IntakePivotEncoder.num
-                SensorToMechanismRatio = ENCODER_TO_PIVOT_GEAR_RATIO
-                RotorToSensorRatio = MOTOR_TO_ENCODER_GEAR_RATIO
-            }
-            MotorOutput.apply {
-                NeutralMode = NeutralModeValue.Brake
-                Inverted = PIVOT_MOTOR_DIRECTION
-            }
+    private val intakeMotor = TalonFX(CTREDeviceId.IntakeMotor).apply {
+        configurator.apply(TalonFXConfiguration().apply { MotorOutput.Inverted =
+            com.frcteam3636.swervebase.subsystems.drivetrain.Intake.IntakeIOReal.Constants.WHEEL_MOTOR_DIRECTION
         })
     }
 
+    private val encoder =  CANcoder(CTREDeviceId.IntakePivotEncoder).apply {
+        configurator.apply(CANcoderConfiguration().apply {
+            MagnetSensor.SensorDirection = SensorDirectionValue.Clockwise_Positive
+        })
+        setPosition(0.degrees)
+    }
     override fun setSpeed(percent: Double) {
         intakeMotor.set(percent)
     }
 
     override fun setVoltage(voltage: Voltage) {
-        intakeMotor.setVoltage(voltage)
+        Logger.recordOutput("Intake/Pivot Attempted Voltage", voltage)
+        intakeMotor.setVoltage(voltage.inVolts())
     }
 
     override fun updateInputs(inputs: IntakeInputs) {
-        inputs.intakeMotorVelocity = intakeMotor.encoder.velocity.rpm
+        inputs.intakeMotorVelocity = intakeMotor.velocity.value
+        inputs.intakeMotorCurrent = intakeMotor.supplyCurrent.value
     }
 }
