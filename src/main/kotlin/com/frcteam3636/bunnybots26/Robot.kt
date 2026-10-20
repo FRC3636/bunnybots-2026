@@ -1,9 +1,10 @@
-package com.frcteam3636.swervebase
+package com.frcteam3636.bunnybots26
 
 import com.ctre.phoenix6.CANBus
 import com.ctre.phoenix6.SignalLogger
 import com.ctre.phoenix6.StatusSignalCollection
-import com.frcteam3636.swervebase.subsystems.drivetrain.Drivetrain
+import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain
+import com.frcteam3636.bunnybots26.subsystems.intake.Intake
 import com.frcteam3636.version.BUILD_DATE
 import com.frcteam3636.version.DIRTY
 import com.frcteam3636.version.GIT_BRANCH
@@ -138,6 +139,7 @@ object Robot : LoggedRobot() {
     /** Start robot subsystems so that their periodic tasks are run */
     private fun configureSubsystems() {
         Drivetrain.register()
+        Intake.register()
     }
 
     /** Expose commands for autonomous routines to use and display an auto picker in Shuffleboard. */
