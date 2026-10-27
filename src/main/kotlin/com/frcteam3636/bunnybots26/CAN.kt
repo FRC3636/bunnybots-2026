@@ -1,4 +1,4 @@
-package com.frcteam3636.swervebase
+package com.frcteam3636.bunnybots26
 
 import com.ctre.phoenix6.CANBus
 import com.ctre.phoenix6.hardware.CANcoder
@@ -24,6 +24,9 @@ enum class CTREDeviceId(val num: Int, val bus: CANBus) {
     FrontRightTurningEncoder(12, canivoreBus),
 
     PigeonGyro(20, canivoreBus),
+
+    IntakeMotor(22, canivoreBus),
+    IntakePivotEncoder(43, canivoreBus),
 }
 
 fun CANcoder(id: CTREDeviceId) = CANcoder(id.num, id.bus)

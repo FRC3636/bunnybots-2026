@@ -1,6 +1,6 @@
 @file:Suppress("NOTHING_TO_INLINE", "unused")
 
-package com.frcteam3636.swervebase.utils.math
+package com.frcteam3636.bunnybots26.utils.math
 
 import edu.wpi.first.units.Units.*
 import edu.wpi.first.units.VoltageUnit
@@ -43,7 +43,7 @@ inline val Number.rotationsPerSecondPerSecond: AngularAcceleration get() = Rotat
 inline val Number.rpm: AngularVelocity get() = RPM.of(this.toDouble())
 inline val Number.radiansPerSecond: AngularVelocity get() = RadiansPerSecond.of(this.toDouble())
 inline val Number.degreesPerSecond: AngularVelocity get() = DegreesPerSecond.of(this.toDouble())
-
+inline val Number.degreesPerSecondPerSecond: AngularAcceleration get() = DegreesPerSecondPerSecond.of(this.toDouble())
 inline val Number.hertz: Frequency get() = Hertz.of(this.toDouble())
 inline val Number.millihertz: Frequency get() = Millihertz.of(this.toDouble())
 
