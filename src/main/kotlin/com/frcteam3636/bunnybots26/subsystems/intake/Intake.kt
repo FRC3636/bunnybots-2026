@@ -1,7 +1,6 @@
 package com.frcteam3636.bunnybots26.subsystems.intake
 
-import com.frcteam3636.bunnybots26.Robot
-import com.frcteam3636.bunnybots26.subsystems.drivetrain.intake.LoggedIntakeInputs
+import com.frcteam3636.bunnybots26.robot.Robot
 import com.frcteam3636.bunnybots26.utils.math.volts
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.Subsystem

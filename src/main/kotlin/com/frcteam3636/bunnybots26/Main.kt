@@ -1,6 +1,7 @@
 @file:JvmName("Main") // set the compiled Java class name to "Main" rather than "MainKt"
 package com.frcteam3636.bunnybots26
 
+import com.frcteam3636.bunnybots26.robot.Robot
 import edu.wpi.first.wpilibj.RobotBase
 
 /**

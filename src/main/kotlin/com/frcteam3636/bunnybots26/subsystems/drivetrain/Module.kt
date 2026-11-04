@@ -11,7 +11,7 @@ import com.ctre.phoenix6.signals.NeutralModeValue
 import com.ctre.phoenix6.signals.StaticFeedforwardSignValue
 import com.frcteam3636.bunnybots26.CANcoder
 import com.frcteam3636.bunnybots26.CTREDeviceId
-import com.frcteam3636.bunnybots26.Robot
+import com.frcteam3636.bunnybots26.robot.Robot
 import com.frcteam3636.bunnybots26.TalonFX
 import com.frcteam3636.bunnybots26.utils.math.*
 import com.frcteam3636.bunnybots26.utils.swerve.SwerveModuleTemperature
@@ -43,7 +43,7 @@ interface SwerveModule {
     // This is a vector with direction equal to the current angle of the module,
     // and magnitude equal to the total signed distance traveled by the wheel.
     val position: SwerveModulePosition
-    val positionRad: Angle
+    val angularDrivePosition: Angle
     var odometryTimestamps: DoubleArray
     var odometryTurnPositions: Array<Rotation2d>
     var odometryDrivePositions: DoubleArray
@@ -60,16 +60,14 @@ interface SwerveModule {
 class Mk5nSwerveModule(
     val drivingMotor: SwerveDrivingMotor, val turningMotor: SwerveTurningMotor, private val chassisAngle: Rotation2d
 ) : SwerveModule {
-    private var timestampQueue: Queue<Double> = PhoenixOdometryThread.getInstance().makeTimestampQueue()
+    private var timestampQueue: Queue<Double> = PhoenixOdometryThread.makeTimestampQueue()
 
     private val maxQueueSize = 100  // or however many timestamps we expect
 
-    // preallocate to reduce GC pressure
-    private val emptySwerveModulePosition = SwerveModulePosition()
     override var odometryTimestamps: DoubleArray = DoubleArray(maxQueueSize)
     override var odometryDrivePositions = doubleArrayOf()
     override var odometryTurnPositions: Array<Rotation2d> = Array(maxQueueSize) { Rotation2d.kZero }
-    override var odometryPositions: Array<SwerveModulePosition> = Array(maxQueueSize) { emptySwerveModulePosition }
+    override var odometryPositions: Array<SwerveModulePosition> = Array(maxQueueSize) { SwerveModulePosition() }
     override var validTimestamps: Int = 0
     override var temperatures: SwerveModuleTemperature = SwerveModuleTemperature(0.0.celsius, 0.0.celsius)
 
@@ -84,8 +82,8 @@ class Mk5nSwerveModule(
             drivingMotor.position, Rotation2d.fromRadians(turningMotor.position.inRadians()) + chassisAngle
         )
 
-    override val positionRad: Angle
-        get() = drivingMotor.positionRad
+    override val angularDrivePosition: Angle
+        get() = drivingMotor.angularPosition
 
     override fun characterize(voltage: Voltage, turningAngle: Angle?) {
         drivingMotor.setVoltage(voltage)
@@ -94,7 +92,7 @@ class Mk5nSwerveModule(
         }
     }
 
-    override var desiredState: SwerveModuleState = SwerveModuleState(0.0, Rotation2d.kZero)
+    override var desiredState: SwerveModuleState = SwerveModuleState(0.0, -chassisAngle)
         get() = SwerveModuleState(field.speedMetersPerSecond, field.angle + chassisAngle)
         set(value) {
             val corrected = SwerveModuleState(value.speedMetersPerSecond, value.angle - chassisAngle)
@@ -146,7 +144,7 @@ class Mk5nSwerveModule(
 
 interface SwerveDrivingMotor {
     val position: Distance
-    val positionRad: Angle
+    val angularPosition: Angle
     var velocity: LinearVelocity
     var odometryDrivePositions: DoubleArray
     val temperature: Temperature
@@ -194,7 +192,7 @@ class DrivingTalon(id: CTREDeviceId) : SwerveDrivingMotor {
     private val temperatureSignal = inner.deviceTemp
 
     private val positionQueue: Queue<Double> =
-        PhoenixOdometryThread.getInstance().registerSignal(positionSignal.clone())
+        PhoenixOdometryThread.registerSignal(positionSignal.clone())
 
     init {
         BaseStatusSignal.setUpdateFrequencyForAll(250.0, positionSignal)
@@ -205,7 +203,7 @@ class DrivingTalon(id: CTREDeviceId) : SwerveDrivingMotor {
     override val position: Distance
         get() = positionSignal.value.toLinear(WHEEL_RADIUS)
 
-    override val positionRad: Angle
+    override val angularPosition: Angle
         get() = positionSignal.value
 
     private var velocityControl = VelocityVoltage(0.0).apply {
@@ -257,12 +255,6 @@ class TurningTalon(id: CTREDeviceId, encoderId: CTREDeviceId, magnetOffset: Doub
                 RotorToSensorRatio = TURNING_GEAR_RATIO
                 FeedbackRemoteSensorID = encoderId.num
             }
-            MotionMagic.apply {
-                MotionMagicCruiseVelocity = 100.0 / TURNING_GEAR_RATIO
-                MotionMagicAcceleration = MotionMagicCruiseVelocity / 0.1
-                MotionMagicExpo_kA = 0.1
-                MotionMagicExpo_kV = 0.12 * TURNING_GEAR_RATIO
-            }
         })
     }
 
@@ -271,7 +263,7 @@ class TurningTalon(id: CTREDeviceId, encoderId: CTREDeviceId, magnetOffset: Doub
     private val temperatureSignal = inner.deviceTemp
 
     private val positionQueue: Queue<Double> =
-        PhoenixOdometryThread.getInstance().registerSignal(positionSignal.clone())
+        PhoenixOdometryThread.registerSignal(positionSignal.clone())
     override var odometryTurnPositions: Array<Rotation2d> = emptyArray()
 
     init {
@@ -318,13 +310,13 @@ class SimSwerveModule : SwerveModule {
     override var validTimestamps: Int = 0
     private val driveMotorSystem = LinearSystemId.createDCMotorSystem(
         DCMotor.getKrakenX60Foc(1),
-        0.0001,
+        0.01,
         DRIVING_GEAR_RATIO
     )
     private val driveMotor = DCMotorSim(driveMotorSystem, DCMotor.getKrakenX60Foc(1).withReduction(DRIVING_GEAR_RATIO))
 
     private val turnMotorSystem = LinearSystemId.createDCMotorSystem(
-        DCMotor.getKrakenX60(1),
+        DCMotor.getKrakenX44Foc(1),
         0.01,
         TURNING_GEAR_RATIO
     )
@@ -343,7 +335,7 @@ class SimSwerveModule : SwerveModule {
             Rotation2d.fromRadians(turnMotor.angularPositionRad)
         )
 
-    override val positionRad: Angle
+    override val angularDrivePosition: Angle
         get() = driveMotor.angularPosition
 
     override var desiredState: SwerveModuleState = SwerveModuleState(0.0, Rotation2d())
@@ -377,7 +369,7 @@ class SimSwerveModule : SwerveModule {
 
 // take the known wheel diameter, divide it by two to get the radius, then get the
 // circumference
-internal val WHEEL_RADIUS = 1.976.inches
+internal val WHEEL_RADIUS = 1.9225.inches
 
 const val DRIVING_GEAR_RATIO = TunerConstants.kDriveGearRatio
 const val TURNING_GEAR_RATIO = TunerConstants.kSteerGearRatio

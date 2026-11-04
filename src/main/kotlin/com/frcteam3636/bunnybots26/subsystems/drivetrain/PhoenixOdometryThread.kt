@@ -2,7 +2,7 @@ package com.frcteam3636.bunnybots26.subsystems.drivetrain
 
 import com.ctre.phoenix6.BaseStatusSignal
 import com.ctre.phoenix6.StatusSignal
-import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain.odometryLock
+import com.frcteam3636.bunnybots26.robot.Robot.odometryLock
 import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.wpilibj.RobotController
 import java.util.*
@@ -10,12 +10,12 @@ import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
 
-class PhoenixOdometryThread : Thread("PhoenixOdometry") {
+object PhoenixOdometryThread : Thread("PhoenixOdometry") {
     init {
         isDaemon = true
     }
 
-    private val timestampQueues: MutableList<Queue<Double>> = ArrayList()
+    private val timestampQueues: MutableList<Queue<Double>> = mutableListOf()
     private val signalsLock: Lock = ReentrantLock() // Prevents conflicts when registering signals
     private var phoenixSignals: Array<BaseStatusSignal> = emptyArray() // Phoenix API does not accept a mutable list
     private val phoenixQueues = ArrayList<Queue<Double>>()
@@ -89,16 +89,6 @@ class PhoenixOdometryThread : Thread("PhoenixOdometry") {
             } finally {
                 odometryLock.unlock()
             }
-        }
-    }
-
-    companion object {
-        private var instance: PhoenixOdometryThread? = null
-
-        fun getInstance(): PhoenixOdometryThread {
-            if (instance == null)
-                instance = PhoenixOdometryThread()
-            return instance!!
         }
     }
 }
