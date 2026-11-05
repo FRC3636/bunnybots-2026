@@ -6,7 +6,6 @@ import com.frcteam3636.bunnybots26.CTREDeviceId
 import com.frcteam3636.bunnybots26.robot.Robot
 import com.frcteam3636.bunnybots26.robot.Robot.Model
 import com.frcteam3636.bunnybots26.robot.Robot.odometryLock
-import com.frcteam3636.bunnybots26.robot.RobotState
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain.Constants.BRAKE_POSITION
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain.Constants.DRIVE_BASE_RADIUS
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain.Constants.FREE_SPEED
@@ -14,6 +13,8 @@ import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain.Constants.JO
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain.Constants.MODULE_POSITIONS
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain.Constants.ROTATION_SENSITIVITY
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain.Constants.TRANSLATION_SENSITIVITY
+import com.frcteam3636.bunnybots26.subsystems.vision.Vision
+import com.frcteam3636.bunnybots26.subsystems.vision.addAbsolutePoseMeasurement
 import com.frcteam3636.bunnybots26.utils.autos.APTargetWithTolerance
 import com.frcteam3636.bunnybots26.utils.autos.FIELD_WIDTH_METERS
 import com.frcteam3636.bunnybots26.utils.autos.flipTargetHorizontal
@@ -31,7 +32,6 @@ import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator
 import edu.wpi.first.math.filter.SlewRateLimiter
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
-import edu.wpi.first.math.geometry.Transform3d
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.math.geometry.Translation3d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
@@ -157,43 +157,12 @@ object Drivetrain : Subsystem {
 
     val lastModulePositions = Array(4) { SwerveModulePosition() }
 
-    private val absolutePoseIOs =
-        when (Robot.model) {
-            Model.SIMULATION ->
-                mapOf(
-                    "Limelight" to
-                            CameraSimPoseProvider("limelight", Transform3d.kZero),
-                )
-            else ->
-                mapOf(
-                    "Limelight Left" to
-                            LimelightPoseProvider(
-                                "limelight-left",
-                                { poseEstimator.estimatedPosition.rotation },
-                                { inputs.gyroVelocity },
-                                { inputs.gyroConnected },
-                                true,
-                            ),
-                    "Limelight Right" to
-                            LimelightPoseProvider(
-                                "limelight-right",
-                                { poseEstimator.estimatedPosition.rotation },
-                                { inputs.gyroVelocity },
-                                { inputs.gyroConnected },
-                                true,
-                            ),
-                )
-        }.mapValues { Pair(it.value, LoggedAbsolutePoseProviderInputs()) }
-
     /**
      * Helper for converting a desired drivetrain velocity into the speeds and angles for each
      * swerve module
      */
     private val kinematics =
         SwerveDriveKinematics(*MODULE_POSITIONS.map { it.position.translation }.toTypedArray())
-
-    private val acceptedPoses: MutableList<Pose2d> = mutableListOf()
-    private val rejectedPoses: MutableList<Pose2d> = mutableListOf()
 
     /** Helper for estimating the location of the drivetrain on the field */
     val poseEstimator =
@@ -207,15 +176,12 @@ object Drivetrain : Subsystem {
             VecBuilder.fill(0.0, 0.0, 0.0)
         )
 
-    /** Whether every sensor used for pose estimation is connected. */
-    val allPoseProvidersConnected
-        get() = absolutePoseIOs.values.all { it.second.connected }
-
     init {
-        //        if (io is DrivetrainIOSim) {
-        //            io.registerPoseProviders(absolutePoseIOs.values.map { it.first })
-        //        }
         PhoenixOdometryThread.start()
+        Vision.registerPoseSupplier(
+            supplier = { estimatedPose },
+            enabledSupplier = { Robot.isEnabled },
+        )
     }
 
     val modulePositions = Array(4) { SwerveModulePosition() }
@@ -281,61 +247,13 @@ object Drivetrain : Subsystem {
             io.updateInputs(inputs)
             Logger.processInputs("Drivetrain", inputs)
             io.updateChassisSpeeds(desiredChassisSpeeds)
+        }
 
-            //            rawGyroRotation = inputs.gyroRotation
-            //            poseEstimator.update(
-            //                rawGyroRotation,
-            //                inputs.measuredPositions.toTypedArray()
-            //            )
-            io.registerPoseProviders(absolutePoseIOs.values.map { it.first })
-            //            poseEstimator.resetPose(io.swerveDriveSimulation.simulatedDriveTrainPose)
+        for (m in Vision.drainAcceptedMeasurements()) {
+            poseEstimator.addAbsolutePoseMeasurement(m)
         }
 
         Logger.recordOutput("Drivetrain/Raw Gyro Rotation", rawGyroRotation)
-
-        // Update absolute pose sensors and add their measurements to the pose estimator
-        for ((name, ioPair) in absolutePoseIOs) {
-            val (sensorIO, inputs) = ioPair
-
-            sensorIO.updateInputs(inputs)
-            Logger.processInputs("Drivetrain/Absolute Pose/$name", inputs)
-
-            for (measurement in inputs.measurements) {
-                if (!measurement.isLowQuality) {
-                    if (measurement.pose.x < 0.0 || measurement.pose.y < 0.0) {
-                        rejectedPoses.add(measurement.pose)
-                        continue
-                    } else if (measurement.pose.x > FIELD_LAYOUT.fieldLength ||
-                        measurement.pose.y > FIELD_LAYOUT.fieldWidth
-                    ) {
-                        rejectedPoses.add(measurement.pose)
-                        continue
-                    } else if (abs(
-                            measurement.pose.rotation.degrees -
-                                    estimatedPose.rotation.degrees
-                        ) > 5 && !RobotState.beforeFirstEnable
-                    ) {
-                        rejectedPoses.add(measurement.pose)
-                        continue
-                    }
-                    acceptedPoses.add(measurement.pose)
-                    poseEstimator.addAbsolutePoseMeasurement(measurement)
-                } else {
-                    rejectedPoses.add(measurement.pose)
-                }
-            }
-
-            Logger.recordOutput(
-                "Drivetrain/Absolute Pose/$name/Accepted Poses",
-                *acceptedPoses.toTypedArray()
-            )
-            Logger.recordOutput(
-                "Drivetrain/Absolute Pose/$name/Rejected Poses",
-                *rejectedPoses.toTypedArray()
-            )
-            acceptedPoses.clear()
-            rejectedPoses.clear()
-        }
 
         Logger.recordOutput(
             "Drivetrain/Pose Estimator/Estimated Pose",
@@ -350,17 +268,6 @@ object Drivetrain : Subsystem {
         Logger.recordOutput(
             "Drivetrain/Desired Velocity",
             desiredChassisSpeeds.translation2dPerSecond.norm.metersPerSecond
-        )
-
-        Logger.recordOutput(
-            "Drivetrain/TagPoses",
-            *FIELD_LAYOUT
-                .tags
-                .filter { tag ->
-                    absolutePoseIOs.values.any { it.second.observedTags.contains(tag.ID) }
-                }
-                .map { it.pose }
-                .toTypedArray()
         )
     }
 
