@@ -217,7 +217,7 @@ class LimelightPoseProvider(
         inputs.latestTargetObservation = TargetObservation(
             Rotation2d(txSubscriber.get().degrees),
             Rotation2d(tySubscriber.get().degrees),
-            tvSubscriber.get() == 0.toLong()
+            tvSubscriber.get() == 1.toLong()
         )
 
         // We assume the camera has disconnected if there are no new updates for several ticks.
