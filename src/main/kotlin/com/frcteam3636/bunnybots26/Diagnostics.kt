@@ -4,6 +4,7 @@ import com.ctre.phoenix6.CANBus
 import com.frcteam3636.bunnybots26.robot.Robot
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Gyro
+import com.frcteam3636.bunnybots26.subsystems.vision.Vision
 import com.frcteam3636.bunnybots26.utils.cachedStatus
 import edu.wpi.first.wpilibj.Alert
 import edu.wpi.first.wpilibj.Alert.AlertType
@@ -119,7 +120,7 @@ object Diagnostics {
 //            reportAlert(RobotAlert.DubiousAutoChoice)
 //        }
 
-        if (!Drivetrain.allPoseProvidersConnected) {
+        if (!Vision.inputs.allProvidersConnected) {
             reportAlert(RobotAlert.LimelightDisconnected)
         }
 

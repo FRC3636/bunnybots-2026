@@ -8,6 +8,7 @@ import com.frcteam3636.bunnybots26.Pigeon2
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain.Constants.MODULE_POSITIONS
 import com.frcteam3636.bunnybots26.subsystems.vision.AbsolutePoseProvider
 import com.frcteam3636.bunnybots26.subsystems.vision.CameraSimPoseProvider
+import com.frcteam3636.bunnybots26.subsystems.vision.Vision.FIELD_LAYOUT
 import com.frcteam3636.bunnybots26.utils.math.*
 import com.frcteam3636.bunnybots26.utils.swerve.DrivetrainCorner
 import com.frcteam3636.bunnybots26.utils.swerve.PerCorner
@@ -199,6 +200,3 @@ class DrivetrainIOSim : DrivetrainIO() {
         }
     }
 }
-
-
-val FIELD_LAYOUT: AprilTagFieldLayout = AprilTagFieldLayout.loadField(AprilTagFields.kDefaultField)

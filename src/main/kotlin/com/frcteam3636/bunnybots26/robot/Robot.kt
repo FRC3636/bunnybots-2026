@@ -8,6 +8,7 @@ import com.frcteam3636.bunnybots26.Dashboard
 import com.frcteam3636.bunnybots26.Diagnostics
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain
 import com.frcteam3636.bunnybots26.subsystems.intake.Intake
+import com.frcteam3636.bunnybots26.subsystems.vision.Vision
 import com.frcteam3636.version.BUILD_DATE
 import com.frcteam3636.version.DIRTY
 import com.frcteam3636.version.GIT_BRANCH
@@ -158,6 +159,8 @@ object Robot : LoggedRobot() {
     private fun configureSubsystems() {
         Drivetrain.register()
         Intake.register()
+
+        Vision.register()
     }
 
 
