@@ -1,11 +1,12 @@
-package com.frcteam3636.bunnybots26.subsystems.drivetrain
+package com.frcteam3636.bunnybots26.subsystems.vision
 
 import com.ctre.phoenix6.BaseStatusSignal
 import com.ctre.phoenix6.StatusSignal
-import com.frcteam3636.bunnybots26.robot.Robot.odometryLock
+import com.frcteam3636.bunnybots26.robot.Robot
 import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.wpilibj.RobotController
-import java.util.*
+import java.util.ArrayList
+import java.util.Queue
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
@@ -30,7 +31,7 @@ object PhoenixOdometryThread : Thread("PhoenixOdometry") {
         val queue: Queue<Double> = ArrayBlockingQueue(20)
 
         signalsLock.lock()
-        odometryLock.lock()
+        Robot.odometryLock.lock()
         try {
             val newSignals = Array(phoenixSignals.size + 1) { i ->
                 if (i < phoenixSignals.size) phoenixSignals[i] else signal
@@ -39,7 +40,7 @@ object PhoenixOdometryThread : Thread("PhoenixOdometry") {
             phoenixQueues.add(queue)
         } finally {
             signalsLock.unlock()
-            odometryLock.unlock()
+            Robot.odometryLock.unlock()
         }
 
         return queue
@@ -47,11 +48,11 @@ object PhoenixOdometryThread : Thread("PhoenixOdometry") {
 
     fun makeTimestampQueue(): Queue<Double> {
         val queue = ArrayBlockingQueue<Double>(20)
-        odometryLock.lock()
+        Robot.odometryLock.lock()
         try {
             timestampQueues.add(queue)
         } finally {
-            odometryLock.unlock()
+            Robot.odometryLock.unlock()
         }
         return queue
     }
@@ -69,7 +70,7 @@ object PhoenixOdometryThread : Thread("PhoenixOdometry") {
                 signalsLock.unlock()
             }
 
-            odometryLock.lock()
+            Robot.odometryLock.lock()
             try {
                 var timestamp = RobotController.getFPGATime() / 1e6
                 var latency = 0.0
@@ -87,7 +88,7 @@ object PhoenixOdometryThread : Thread("PhoenixOdometry") {
                     timestampQueues[i].offer(timestamp)
                 }
             } finally {
-                odometryLock.unlock()
+                Robot.odometryLock.unlock()
             }
         }
     }

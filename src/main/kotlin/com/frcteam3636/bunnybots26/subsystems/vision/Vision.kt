@@ -3,7 +3,6 @@ package com.frcteam3636.bunnybots26.subsystems.vision
 import com.frcteam3636.bunnybots26.robot.Robot
 import edu.wpi.first.apriltag.AprilTagFieldLayout
 import edu.wpi.first.apriltag.AprilTagFields
-import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.wpilibj2.command.Subsystem
 import org.littletonrobotics.junction.Logger
 
@@ -18,12 +17,6 @@ object Vision : Subsystem {
     val inputs = LoggedVisionInputs()
 
     val FIELD_LAYOUT: AprilTagFieldLayout = AprilTagFieldLayout.loadField(AprilTagFields.kDefaultField)
-
-    // Must be called once from Drivetrain.init
-    fun registerPoseSupplier(supplier: () -> Pose2d, enabledSupplier: () -> Boolean) {
-        io.registerPoseSupplier(supplier, enabledSupplier)
-        inputs.poseSupplierInitialized = true
-    }
 
     override fun periodic() {
         if (!inputs.poseSupplierInitialized) return

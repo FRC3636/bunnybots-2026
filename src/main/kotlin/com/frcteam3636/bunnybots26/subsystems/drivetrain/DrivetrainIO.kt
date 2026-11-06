@@ -13,8 +13,6 @@ import com.frcteam3636.bunnybots26.utils.math.*
 import com.frcteam3636.bunnybots26.utils.swerve.DrivetrainCorner
 import com.frcteam3636.bunnybots26.utils.swerve.PerCorner
 import com.frcteam3636.bunnybots26.utils.swerve.SwerveModuleTemperature
-import edu.wpi.first.apriltag.AprilTagFieldLayout
-import edu.wpi.first.apriltag.AprilTagFields
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.geometry.Translation2d
@@ -50,7 +48,6 @@ abstract class DrivetrainIO {
     protected abstract val gyro: Gyro
     abstract val modules: PerCorner<out SwerveModule>
 
-
     open fun updateInputs(inputs: DrivetrainInputs) {
         gyro.periodic()
         modules.forEachIndexed { i, module ->
@@ -79,14 +76,10 @@ abstract class DrivetrainIO {
                 val trans = MODULE_POSITIONS[i].position.translation
                 var angle = atan2(trans.y, trans.x)
                 if (MODULE_POSITIONS[i] == MODULE_POSITIONS.frontRight || MODULE_POSITIONS[i] == MODULE_POSITIONS.backRight) {
-//                    angle -= 90.degrees.inRadians()
                     if (MODULE_POSITIONS[i] == MODULE_POSITIONS.backRight) {
                         modules[i].characterize(voltage, Rotation2d(angle.radians).unaryMinus().measure)
                     } else {
-                        modules[i].characterize(
-                            voltage,
-                            Rotation2d(angle.radians).unaryMinus().measure + Rotation2d.k180deg.measure
-                        )
+                        modules[i].characterize(voltage, Rotation2d(angle.radians).unaryMinus().measure + Rotation2d.k180deg.measure)
                     }
                 } else {
                     angle += 90.degrees.inRadians()
@@ -98,7 +91,6 @@ abstract class DrivetrainIO {
                 modules[i].characterize(voltage, MODULE_POSITIONS[i].position.rotation.unaryMinus().measure)
             }
         } else {
-            // keep at same angle
             for (module in modules) {
                 module.characterize(voltage, null)
             }
@@ -131,11 +123,9 @@ abstract class DrivetrainIO {
         }
 }
 
-/** Drivetrain I/O layer that uses real swerve modules along with a NavX gyro. */
+/** Drivetrain I/O layer that uses real swerve modules along with a Pigeon gyro. */
 class DrivetrainIOReal(override val modules: PerCorner<SwerveModule>) : DrivetrainIO() {
     val gyroConfig: MountPoseConfigs = MountPoseConfigs()
-//        .withMountPosePitch(180.degrees)
-
     override val gyro = GyroPigeon(Pigeon2(CTREDeviceId.PigeonGyro)).apply {
         gyroConfig
     }
@@ -190,13 +180,5 @@ class DrivetrainIOSim : DrivetrainIO() {
 
     init {
         SimulatedArena.getInstance().addDriveTrainSimulation(simulatedDrive.driveTrainSimulation)
-    }
-
-    fun registerPoseProviders(providers: Iterable<AbsolutePoseProvider>) {
-        for (provider in providers) {
-            if (provider is CameraSimPoseProvider) {
-                vision.addCamera(provider.sim, provider.chassisToCamera)
-            }
-        }
     }
 }

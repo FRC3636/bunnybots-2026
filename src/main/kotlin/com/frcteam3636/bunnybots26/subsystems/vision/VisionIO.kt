@@ -1,4 +1,5 @@
 package com.frcteam3636.bunnybots26.subsystems.vision
+import com.frcteam3636.bunnybots26.robot.Robot
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain
 import com.frcteam3636.bunnybots26.subsystems.vision.Vision.FIELD_LAYOUT
 import com.frcteam3636.bunnybots26.utils.math.TAU
@@ -21,7 +22,6 @@ open class VisionInputs {
 
 interface VisionIO {
     fun clearMeasurementData(inputs: VisionInputs)
-    fun registerPoseSupplier(supplier: () -> Pose2d, enabledSupplier: () -> Boolean)
     fun updateInputs(inputs: VisionInputs)
     fun drainAcceptedMeasurements(): List<AbsolutePoseMeasurement>
 }
@@ -30,17 +30,17 @@ class VisionIOReal : VisionIO {
 
     private val providers = mapOf(
         "Left" to
-            LimelightPoseProvider("limelight-left", { poseSupplier().rotation }, { Drivetrain.inputs.gyroVelocity }, { Drivetrain.inputs.gyroConnected }, isLL4 = true),
+            LimelightPoseProvider("limelight-left", { poseSupplier.rotation }, { Drivetrain.inputs.gyroVelocity }, { Drivetrain.inputs.gyroConnected }, isLL4 = true),
         "Right" to
-            LimelightPoseProvider("limelight-right",{ poseSupplier().rotation }, { Drivetrain.inputs.gyroVelocity }, { Drivetrain.inputs.gyroConnected }, isLL4 = true),
+            LimelightPoseProvider("limelight-right",{ poseSupplier.rotation }, { Drivetrain.inputs.gyroVelocity }, { Drivetrain.inputs.gyroConnected }, isLL4 = true),
         "LeftTrig" to
-            TrigSolverPoseProvider("limelight-left",LEFT_CAMERA_TRANSFORM,{ poseSupplier().rotation },{ Drivetrain.inputs.gyroVelocity }, isLL4 = true),
+            TrigSolverPoseProvider("limelight-left",LEFT_CAMERA_TRANSFORM,{ poseSupplier.rotation },{ Drivetrain.inputs.gyroVelocity }, isLL4 = true),
         "RightTrig" to
-            TrigSolverPoseProvider("limelight-right",RIGHT_CAMERA_TRANSFORM,{ poseSupplier().rotation },{ Drivetrain.inputs.gyroVelocity }, isLL4 = true),
+            TrigSolverPoseProvider("limelight-right",RIGHT_CAMERA_TRANSFORM,{ poseSupplier.rotation },{ Drivetrain.inputs.gyroVelocity }, isLL4 = true),
     ).mapValues { Pair(it.value, LoggedAbsolutePoseProviderInputs()) }
 
-    private lateinit var poseSupplier: () -> Pose2d
-    private lateinit var enabledSupplier: () -> Boolean
+    val poseSupplier: Pose2d
+        get() = Drivetrain.estimatedPose
 
     private val acceptedMeasurements = mutableListOf<AbsolutePoseMeasurement>()
 
@@ -52,14 +52,8 @@ class VisionIOReal : VisionIO {
         acceptedMeasurements.clear()
     }
 
-    override fun registerPoseSupplier(supplier: () -> Pose2d, enabledSupplier: () -> Boolean) {
-        this.poseSupplier = supplier
-        this.enabledSupplier = enabledSupplier
-    }
-
     override fun updateInputs(inputs: VisionInputs) {
         inputs.allProvidersConnected = providers.values.all { it.second.connected }
-        inputs.poseSupplierInitialized = ::poseSupplier.isInitialized
 
         for ((name, pair) in providers) {
             val (io, ins) = pair
@@ -71,7 +65,7 @@ class VisionIOReal : VisionIO {
                     m.isLowQuality -> reject(inputs, m)
                     m.pose.x < 0.0 || m.pose.y < 0.0 -> reject(inputs, m)
                     m.pose.x > FIELD_LAYOUT.fieldLength || m.pose.y > FIELD_LAYOUT.fieldWidth -> reject(inputs, m)
-                    !enabledSupplier() && abs((m.pose.rotation.radians - poseSupplier().rotation.radians).mod(TAU)) > 0.0872 -> reject(inputs, m)
+                    !Robot.isEnabled && abs((m.pose.rotation.radians - poseSupplier.rotation.radians).mod(TAU)) > 0.0872 -> reject(inputs, m)
                     else -> accept(inputs, m)
                 }
             }
@@ -108,10 +102,6 @@ class VisionIOReal : VisionIO {
 class VisionIOSim : VisionIO {
 
     override fun clearMeasurementData(inputs: VisionInputs) {
-        TODO("Not yet implemented")
-    }
-
-    override fun registerPoseSupplier(supplier: () -> Pose2d, enabledSupplier: () -> Boolean) {
         TODO("Not yet implemented")
     }
 
