@@ -90,6 +90,18 @@ object Drivetrain : Subsystem {
         io.drive(translationInput, rotationInput)
     }
 
+    fun zeroGyro(isReversed: Boolean = false, offset: Rotation2d = Rotation2d.kZero) {
+        io.zeroGyro(isReversed, offset)
+    }
+
+    fun stop() {
+        io.setDesiredStates(BRAKE_POSITION)
+    }
+
+    fun resetPose(pose: Pose2d) {
+        io.resetEstimatedPose(pose)
+    }
+
     // --- AUTOPILOT ---
 
     val autoPilotConstraints: APConstraints =
@@ -150,7 +162,6 @@ object Drivetrain : Subsystem {
         if (flipV) transformedTarget = flipTargetVertical(transformedTarget)
         return alignWithAutopilot(transformedTarget as APTargetWithTolerance)
     }
-
 
     private val limiter = SlewRateLimiter(0.05)
     private var wheelRadiusModuleStates = DoubleArray(4)

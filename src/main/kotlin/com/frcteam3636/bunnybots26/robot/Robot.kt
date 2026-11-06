@@ -7,6 +7,7 @@ import com.frcteam3636.bunnybots26.AutoModes
 import com.frcteam3636.bunnybots26.Dashboard
 import com.frcteam3636.bunnybots26.Diagnostics
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain
+import com.frcteam3636.bunnybots26.subsystems.drivetrain.FieldSide
 import com.frcteam3636.bunnybots26.subsystems.intake.Intake
 import com.frcteam3636.bunnybots26.subsystems.vision.Vision
 import com.frcteam3636.version.BUILD_DATE
@@ -171,10 +172,10 @@ object Robot : LoggedRobot() {
         val selectedAuto = Dashboard.autoChooser.selected ?: AutoModes.None
         val alliance = DriverStation.getAlliance().getOrNull()
         val flipH = alliance == DriverStation.Alliance.Red
-        val flipToSide = { side: Drivetrain.FieldSide -> if (alliance == DriverStation.Alliance.Blue) {
-            side == Drivetrain.FieldSide.Left
+        val flipToSide = { side: FieldSide -> if (alliance == DriverStation.Alliance.Blue) {
+            side == FieldSide.Left
         } else {
-            side == Drivetrain.FieldSide.Right
+            side == FieldSide.Right
         }}
         if (lastSelectedAuto != selectedAuto) {
             lastSelectedAuto = selectedAuto
