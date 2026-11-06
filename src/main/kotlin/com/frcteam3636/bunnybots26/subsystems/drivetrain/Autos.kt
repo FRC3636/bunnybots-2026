@@ -10,8 +10,7 @@ interface Auto {
 }
 
 
-fun resetOdom(pose: APTargetWithTolerance,flipH: Boolean,flipV: Boolean): Command = runOnce({
+fun resetOdom(pose: APTargetWithTolerance,flipH: Boolean,flipV: Boolean): Command =
     Drivetrain.resetPose(
         flipTarget(pose,flipH = flipH,flipV = flipV).reference
     )
-})

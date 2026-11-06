@@ -34,19 +34,18 @@ fun configureBindings() {
 
     /* zeroing commands */
 
-    joystickLeft.button(8).onTrue(Commands.runOnce({
-        println("Gyro Zeroed")
-        Drivetrain.zeroGyro()
-    }).ignoringDisable(true))
+    joystickLeft.button(8).onTrue(
+        Commands.sequence(
+            Commands.runOnce( { println("Pre-match Zeroing.") } ),
+            Drivetrain.zeroGyro()
+        ).ignoringDisable(true)
+    )
 
     joystickRight.button(8).onTrue(
         Commands.sequence(
-            Commands.runOnce({
-                println("Pre-match Zeroing.")
-                Drivetrain.zeroGyro()
-            }).ignoringDisable(true),
-
-        )
+            Commands.runOnce( { println("Pre-match Zeroing.") } ),
+            Drivetrain.zeroGyro()
+        ).ignoringDisable(true)
     )
 
     /* dev bindings */

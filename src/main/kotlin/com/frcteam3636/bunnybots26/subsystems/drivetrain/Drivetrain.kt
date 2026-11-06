@@ -90,17 +90,17 @@ object Drivetrain : Subsystem {
         io.drive(translationInput, rotationInput)
     }
 
-    fun zeroGyro(isReversed: Boolean = false, offset: Rotation2d = Rotation2d.kZero) {
-        io.zeroGyro(isReversed, offset)
-    }
+    fun zeroGyro(isReversed: Boolean = false, offset: Rotation2d = Rotation2d.kZero): Command = Commands.runOnce(
+        { io.zeroGyro(isReversed, offset) }
+    )
 
-    fun stop() {
-        io.setDesiredStates(BRAKE_POSITION)
-    }
+    fun stop(): Command = Commands.run(
+        { io.setDesiredStates(BRAKE_POSITION) }
+    )
 
-    fun resetPose(pose: Pose2d) {
-        io.resetEstimatedPose(pose)
-    }
+    fun resetPose(pose: Pose2d): Command = Commands.runOnce(
+        { io.resetEstimatedPose(pose) }
+    )
 
     // --- AUTOPILOT ---
 

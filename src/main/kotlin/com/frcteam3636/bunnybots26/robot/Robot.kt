@@ -207,15 +207,12 @@ object Robot : LoggedRobot() {
     }
 
     override fun autonomousInit() {
-//        val selectedAuto = Dashboard.autoChooser.selected
-        if (!RobotState.beforeFirstEnable)
-            RobotState.beforeFirstEnable = false
+        RobotState.beforeFirstEnable = false
         CommandScheduler.getInstance().schedule(autoCommand)
     }
 
     override fun autonomousExit() {
         autoCommand?.cancel()
-        Drivetrain.stop()
     }
 
     override fun teleopInit() {
