@@ -23,7 +23,7 @@ object PoseEstimator : Subsystem {
     val FIELD_LAYOUT: AprilTagFieldLayout = AprilTagFieldLayout.loadField(AprilTagFields.kDefaultField)
 
     override fun periodic() {
-        io.clearMeasurementData(inputs)
+        io.clearVisionMeasurementData(inputs)
         io.updateInputs(inputs)
         Logger.processInputs("Vision", inputs)
     }
