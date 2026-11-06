@@ -13,7 +13,9 @@ import com.frcteam3636.bunnybots26.utils.autos.flipTargetHorizontal
 import com.frcteam3636.bunnybots26.utils.autos.flipTargetVertical
 import com.frcteam3636.bunnybots26.utils.fieldRelativeTranslation2d
 import com.frcteam3636.bunnybots26.utils.math.*
-import com.frcteam3636.bunnybots26.utils.swerve.*
+import com.frcteam3636.bunnybots26.utils.swerve.Corner
+import com.frcteam3636.bunnybots26.utils.swerve.PerCorner
+import com.frcteam3636.bunnybots26.utils.swerve.translation2dPerSecond
 import com.frcteam3636.bunnybots26.utils.translation2d
 import com.therekrab.autopilot.APConstraints
 import com.therekrab.autopilot.APProfile
@@ -31,8 +33,9 @@ import edu.wpi.first.wpilibj2.command.Commands
 import edu.wpi.first.wpilibj2.command.Subsystem
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
-import kotlin.math.*
 import org.littletonrobotics.junction.Logger
+import kotlin.math.abs
+import kotlin.math.hypot
 
 enum class FieldSide {
     Left,
@@ -148,7 +151,6 @@ object Drivetrain : Subsystem {
         return alignWithAutopilot(transformedTarget as APTargetWithTolerance)
     }
 
-    // wheel radius thingie
 
     private val limiter = SlewRateLimiter(0.05)
     private var wheelRadiusModuleStates = DoubleArray(4)

@@ -13,18 +13,13 @@ import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain.Constants.JO
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain.Constants.MODULE_POSITIONS
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain.Constants.ROTATION_SENSITIVITY
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain.Constants.TRANSLATION_SENSITIVITY
-import com.frcteam3636.bunnybots26.subsystems.drivetrain.FieldSide
 import com.frcteam3636.bunnybots26.subsystems.vision.PhoenixOdometryThread
 import com.frcteam3636.bunnybots26.subsystems.vision.Vision
 import com.frcteam3636.bunnybots26.subsystems.vision.Vision.FIELD_LAYOUT
 import com.frcteam3636.bunnybots26.subsystems.vision.addAbsolutePoseMeasurement
 import com.frcteam3636.bunnybots26.utils.autos.FIELD_WIDTH_METERS
 import com.frcteam3636.bunnybots26.utils.math.*
-import com.frcteam3636.bunnybots26.utils.swerve.DrivetrainCorner
-import com.frcteam3636.bunnybots26.utils.swerve.PerCorner
-import com.frcteam3636.bunnybots26.utils.swerve.SwerveModuleTemperature
-import com.frcteam3636.bunnybots26.utils.swerve.cornerStatesToChassisSpeeds
-import com.frcteam3636.bunnybots26.utils.swerve.toCornerSwerveModuleStates
+import com.frcteam3636.bunnybots26.utils.swerve.*
 import edu.wpi.first.math.VecBuilder
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator
 import edu.wpi.first.math.geometry.Pose2d
@@ -37,8 +32,6 @@ import edu.wpi.first.math.kinematics.SwerveModuleState
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.units.measure.Voltage
 import edu.wpi.first.wpilibj.DriverStation
-import edu.wpi.first.wpilibj2.command.Command
-import edu.wpi.first.wpilibj2.command.button.CommandXboxController
 import org.ironmaple.simulation.SimulatedArena
 import org.ironmaple.simulation.drivesims.COTS
 import org.ironmaple.simulation.drivesims.SelfControlledSwerveDriveSimulation
@@ -47,13 +40,8 @@ import org.ironmaple.simulation.drivesims.configs.DriveTrainSimulationConfig
 import org.littletonrobotics.junction.Logger
 import org.photonvision.simulation.VisionSystemSim
 import org.team9432.annotation.Logged
-import kotlin.compareTo
 import kotlin.jvm.optionals.getOrNull
-import kotlin.math.abs
-import kotlin.math.absoluteValue
-import kotlin.math.atan2
-import kotlin.math.pow
-import kotlin.math.withSign
+import kotlin.math.*
 
 @Logged
 open class DrivetrainInputs {
@@ -67,28 +55,18 @@ open class DrivetrainInputs {
         SwerveModuleTemperature(0.0.celsius, 0.0.celsius)
     }
 
-    // new stuff
     var chassisSpeeds = ChassisSpeeds()
     var chassisSpeedsField = ChassisSpeeds()
     var estimatedPose = Pose2d()
-    /// NOT necessarily equivilant to estimatedPose.rotation.
+    /// NOT equivalent to estimatedPose.rotation
     var estimatedRotation = Rotation2d()
-}
-
-fun isInDeadband(translation: Translation2d) =
-    abs(translation.x) < JOYSTICK_DEADBAND && abs(translation.y) < JOYSTICK_DEADBAND
-
-fun calculateInputCurve(input: Double): Double {
-    val exponent = 2.5
-
-    return input.absoluteValue.pow(exponent).withSign(input)
 }
 
 abstract class DrivetrainIO {
     protected abstract val gyro: Gyro
     abstract val modules: PerCorner<out SwerveModule>
 
-    abstract fun odometry(inputs: DrivetrainInputs)
+    abstract fun updateWheelOdometry(inputs: DrivetrainInputs)
 
     init {
         PhoenixOdometryThread.start()
@@ -98,15 +76,14 @@ abstract class DrivetrainIO {
     val kinematics =
         SwerveDriveKinematics(*MODULE_POSITIONS.map { it.position.translation }.toTypedArray())
 
-    // Helper for estimating the location of the drivetrain on the field, combining odometry and vision
+    // Helper for estimating the location of the drivetrain on the field, combining wheel and vision data
     val poseEstimator =
         SwerveDrivePoseEstimator(
             kinematics, // swerve drive kinematics
             gyro.rotation, // initial gyro rotation
             PerCorner.generate { SwerveModulePosition() }.toTypedArray(), // initial module positions
             Pose2d.kZero, // initial pose
-            VecBuilder.fill(0.02, 0.02, 0.005),
-            // Overwrite each measurement
+            VecBuilder.fill(0.02, 0.02, 0.005), // Overwrite each measurement
             VecBuilder.fill(0.0, 0.0, 0.0)
         )
 
@@ -165,7 +142,14 @@ abstract class DrivetrainIO {
         }
     }
 
-    // sim drive can get lost
+    fun isInDeadband(translation: Translation2d) =
+        abs(translation.x) < JOYSTICK_DEADBAND && abs(translation.y) < JOYSTICK_DEADBAND
+
+    fun calculateInputCurve(input: Double): Double {
+        val exponent = 2.5
+        return input.absoluteValue.pow(exponent).withSign(input)
+    }
+
     fun drive(translationInput: Translation2d, rotationInput: Translation2d) {
         if (isInDeadband(translationInput) && isInDeadband(rotationInput)) {
             // No joystick input - stop moving!
@@ -219,7 +203,7 @@ abstract class DrivetrainIO {
 
         estimatedRotation = inputs.estimatedRotation
 
-        odometry(inputs)
+        updateWheelOdometry(inputs)
 
         for (m in Vision.drainAcceptedMeasurements()) {
             poseEstimator.addAbsolutePoseMeasurement(m)
@@ -288,7 +272,7 @@ class DrivetrainIOReal(override val modules: PerCorner<SwerveModule>) : Drivetra
         gyroConfig
     }
 
-    override fun odometry(inputs: DrivetrainInputs) {
+    override fun updateWheelOdometry(inputs: DrivetrainInputs) {
         try {
             odometryLock.lock()
             Logger.recordOutput("Drivetrain/SpeedsFieldRelative", inputs.chassisSpeedsField)
@@ -381,16 +365,12 @@ class DrivetrainIOSim : DrivetrainIO() {
 
     override val modules = PerCorner.generate { SimSwerveModule() }
     override val gyro = GyroMapleSim(swerveDriveSimulation.gyroSimulation)
-    // this shit did not work anyway ):<
-//    override fun updateInputs(inputs: DrivetrainInputs) {
-//        super.updateInputs(inputs)
-//        vision.update(poseEstimator.estimatedPosition)
-//        Logger.recordOutput("FieldSimulation/RobotPosition", swerveDriveSimulation.simulatedDriveTrainPose)
-//        Diagnostics.report(gyro)
-//    }
 
-    override fun odometry(inputs: DrivetrainInputs) {
-        // idk
+    override fun updateWheelOdometry(inputs: DrivetrainInputs) {
+        super.updateInputs(inputs)
+        vision.update(poseEstimator.estimatedPosition)
+        Logger.recordOutput("FieldSimulation/RobotPosition", swerveDriveSimulation.simulatedDriveTrainPose)
+        Diagnostics.report(gyro)
     }
 
     init {

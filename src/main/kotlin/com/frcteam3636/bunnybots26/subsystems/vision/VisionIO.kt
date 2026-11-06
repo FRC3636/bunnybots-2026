@@ -40,7 +40,7 @@ class VisionIOReal : VisionIO {
     ).mapValues { Pair(it.value, LoggedAbsolutePoseProviderInputs()) }
 
     val poseSupplier: Pose2d
-        get() = Drivetrain.estimatedPose
+        get() = Drivetrain.inputs.estimatedPose
 
     private val acceptedMeasurements = mutableListOf<AbsolutePoseMeasurement>()
 
