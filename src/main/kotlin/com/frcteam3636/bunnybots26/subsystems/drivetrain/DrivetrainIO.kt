@@ -110,30 +110,18 @@ abstract class DrivetrainIO {
             VecBuilder.fill(0.0, 0.0, 0.0)
         )
 
-    // TODO: Privatize and functions instead of setter
-    var desiredChassisSpeeds
-        get() = kinematics.cornerStatesToChassisSpeeds(desiredModuleStates)
-        set(value) {
-            val discretized = ChassisSpeeds.discretize(value, Robot.period)
-            desiredModuleStates = kinematics.toCornerSwerveModuleStates(discretized)
-        }
+    fun getDesiredSpeeds(): ChassisSpeeds = kinematics.cornerStatesToChassisSpeeds(getDesiredStates())
+    fun setDesiredSpeeds(speeds: ChassisSpeeds) {
+        val discretized = ChassisSpeeds.discretize(speeds, Robot.period)
+        setDesiredStates(kinematics.toCornerSwerveModuleStates(discretized))
+    }
 
-    // TODO: This is fried
-    var desiredModuleStates
-        get() = desiredStates
-        set(value) {
-            val stateArr = value.toTypedArray()
-            SwerveDriveKinematics.desaturateWheelSpeeds(stateArr, FREE_SPEED)
-
-            desiredStates = PerCorner.fromConventionalArray(stateArr)
-            Logger.recordOutput("Drivetrain/Desired States", *stateArr)
-        }
-
-    var desiredStates: PerCorner<SwerveModuleState>
-        get() = modules.map { it.desiredState }
-        set(value) {
-            modules.zip(value).forEach { (module, state) -> module.desiredState = state }
-        }
+    fun getDesiredStates(): PerCorner<SwerveModuleState> = modules.map { it.desiredState }
+    fun setDesiredStates(states: PerCorner<SwerveModuleState>) {
+        val stateArr = states.toTypedArray()
+        SwerveDriveKinematics.desaturateWheelSpeeds(stateArr, FREE_SPEED)
+        modules.zip(states).forEach { (module, state) -> module.desiredState = state }
+    }
 
     val odometryPositions: PerCorner<Array<SwerveModulePosition>>
         get() = modules.map { it.odometryPositions }
@@ -181,7 +169,7 @@ abstract class DrivetrainIO {
     fun drive(translationInput: Translation2d, rotationInput: Translation2d) {
         if (isInDeadband(translationInput) && isInDeadband(rotationInput)) {
             // No joystick input - stop moving!
-            desiredModuleStates = BRAKE_POSITION
+            stop()
         } else {
             driveWithoutDeadband(translationInput, rotationInput)
         }
@@ -192,17 +180,16 @@ abstract class DrivetrainIO {
         translationInput: Translation2d,
         rotationInput: Translation2d
     ) {
-        desiredChassisSpeeds =
-            ChassisSpeeds.fromFieldRelativeSpeeds(
-                calculateInputCurve(translationInput.x) *
-                        FREE_SPEED.inMetersPerSecond() *
-                        TRANSLATION_SENSITIVITY,
-                calculateInputCurve(translationInput.y) *
-                        FREE_SPEED.inMetersPerSecond() *
-                        TRANSLATION_SENSITIVITY,
-                rotationInput.y * TAU * ROTATION_SENSITIVITY,
-                estimatedRotation
-            )
+        setDesiredSpeeds(ChassisSpeeds.fromFieldRelativeSpeeds(
+            calculateInputCurve(translationInput.x) *
+                    FREE_SPEED.inMetersPerSecond() *
+                    TRANSLATION_SENSITIVITY,
+            calculateInputCurve(translationInput.y) *
+                    FREE_SPEED.inMetersPerSecond() *
+                    TRANSLATION_SENSITIVITY,
+            rotationInput.y * TAU * ROTATION_SENSITIVITY,
+            estimatedRotation
+        ))
     }
 
     fun updateInputs(inputs: DrivetrainInputs) {
@@ -262,7 +249,7 @@ abstract class DrivetrainIO {
 
     @Suppress("unused")
     fun stop() {
-        desiredModuleStates = BRAKE_POSITION
+        setDesiredStates(BRAKE_POSITION)
     }
 
     fun runCharacterization(voltage: Voltage, shouldSpin: Boolean = false, shouldStraight: Boolean = false) {

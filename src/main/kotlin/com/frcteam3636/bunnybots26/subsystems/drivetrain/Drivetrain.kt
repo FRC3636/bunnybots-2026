@@ -65,7 +65,8 @@ object Drivetrain : Subsystem {
         io.updateInputs(inputs)
 
         Logger.processInputs("Drivetrain/Inputs", inputs)
-        Logger.recordOutput("Drivetrain/SpeedsDesired", io.desiredChassisSpeeds) // could go into io function
+        Logger.recordOutput("Drivetrain/DesiredSpeeds", io.getDesiredSpeeds())
+        Logger.recordOutput("Drivetrain/DesiredStates", *io.getDesiredStates().toTypedArray())
     }
 
     @Suppress("unused")
@@ -124,13 +125,12 @@ object Drivetrain : Subsystem {
                     output.targetAngle.radians
                 )
 
-            io.desiredChassisSpeeds =
-                ChassisSpeeds.fromFieldRelativeSpeeds(
-                    output.vx,
-                    output.vy,
-                    rotationOutput.radiansPerSecond,
-                    inputs.estimatedRotation
-                )
+            io.setDesiredSpeeds(ChassisSpeeds.fromFieldRelativeSpeeds(
+                output.vx,
+                output.vy,
+                rotationOutput.radiansPerSecond,
+                inputs.estimatedRotation
+            ))
 
             Logger.recordOutput("Drivetrain/Auto/Output", output)
             Logger.recordOutput("Drivetrain/Auto/RotationOutput", rotationOutput)
@@ -138,7 +138,7 @@ object Drivetrain : Subsystem {
             Logger.recordOutput("Drivetrain/Auto/TargetEndVelocity", target.velocity)
         }
             .until { autoPilot.atTarget(inputs.estimatedPose, target) }
-            .finallyDo { -> io.desiredModuleStates = BRAKE_POSITION }
+            .finallyDo { -> io.setDesiredStates(BRAKE_POSITION) }
     }
 
     fun alignAndFlip(target: APTarget, flipH: Boolean, flipV: Boolean): Command {
