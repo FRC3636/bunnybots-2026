@@ -11,8 +11,6 @@ import kotlin.math.abs
 
 @Logged
 open class VisionInputs {
-    var acceptedMeasurements = arrayOf<AbsolutePoseMeasurement>()
-    var rejectedMeasurements = arrayOf<AbsolutePoseMeasurement>()
     var acceptedPoses = arrayOf<Pose2d>()
     var rejectedPoses = arrayOf<Pose2d>()
     var observedTags = intArrayOf()
@@ -25,6 +23,7 @@ interface VisionIO {
     fun clearMeasurementData(inputs: VisionInputs)
     fun registerPoseSupplier(supplier: () -> Pose2d, enabledSupplier: () -> Boolean)
     fun updateInputs(inputs: VisionInputs)
+    fun drainAcceptedMeasurements(): List<AbsolutePoseMeasurement>
 }
 
 class VisionIOReal : VisionIO {
@@ -43,10 +42,14 @@ class VisionIOReal : VisionIO {
     private lateinit var poseSupplier: () -> Pose2d
     private lateinit var enabledSupplier: () -> Boolean
 
+    private val acceptedMeasurements = mutableListOf<AbsolutePoseMeasurement>()
+
     override fun clearMeasurementData(inputs: VisionInputs) {
-        inputs.acceptedMeasurements.clear(); inputs.rejectedMeasurements.clear()
-        inputs.acceptedPoses.clear(); inputs.rejectedPoses.clear()
-        inputs.observedTags.clear()
+        inputs.acceptedPoses = arrayOf()
+        inputs.rejectedPoses = arrayOf()
+        inputs.observedTags = intArrayOf()
+        inputs.observedTagPoses = arrayOf()
+        acceptedMeasurements.clear()
     }
 
     override fun registerPoseSupplier(supplier: () -> Pose2d, enabledSupplier: () -> Boolean) {
@@ -62,7 +65,7 @@ class VisionIOReal : VisionIO {
             val (io, ins) = pair
             io.updateInputs(ins)
             Logger.processInputs("Vision/$name", ins)
-            inputs.observedTags.addAll(ins.observedTags.toList())
+            inputs.observedTags += ins.observedTags
             for (m in ins.measurements) {
                 when {
                     m.isLowQuality -> reject(inputs, m)
@@ -78,17 +81,22 @@ class VisionIOReal : VisionIO {
             FIELD_LAYOUT.tags
                 .filter { it.ID in inputs.observedTags }
                 .map { it.pose }
-                .toMutableList()
+                .toTypedArray()
+    }
+
+    override fun drainAcceptedMeasurements(): List<AbsolutePoseMeasurement> {
+        val out = acceptedMeasurements.toList()
+        acceptedMeasurements.clear()
+        return out
     }
 
     private fun accept(inputs: VisionInputs, m: AbsolutePoseMeasurement) {
-        inputs.acceptedMeasurements.add(m)
-        inputs.acceptedPoses.add(m.pose)
+        acceptedMeasurements.add(m)
+        inputs.acceptedPoses += m.pose
     }
 
     private fun reject(inputs: VisionInputs, m: AbsolutePoseMeasurement) {
-        inputs.rejectedMeasurements.add(m)
-        inputs.rejectedPoses.add(m.pose)
+        inputs.rejectedPoses += m.pose
     }
 
     companion object Constants {
@@ -108,6 +116,10 @@ class VisionIOSim : VisionIO {
     }
 
     override fun updateInputs(inputs: VisionInputs) {
+        TODO("Not yet implemented")
+    }
+
+    override fun drainAcceptedMeasurements(): List<AbsolutePoseMeasurement> {
         TODO("Not yet implemented")
     }
 

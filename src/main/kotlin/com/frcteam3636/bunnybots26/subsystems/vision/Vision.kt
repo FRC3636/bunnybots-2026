@@ -34,9 +34,7 @@ object Vision : Subsystem {
 
     /** Consumed by Drivetrain once per loop. */
     fun drainAcceptedMeasurements(): List<AbsolutePoseMeasurement> {
-        val out = inputs.acceptedMeasurements.toList()
-        inputs.acceptedMeasurements = arrayListOf()
-        return out
+        return io.drainAcceptedMeasurements()
     }
 
 }
