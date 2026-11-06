@@ -134,6 +134,24 @@ object Drivetrain : Subsystem {
             )
         }
 
+    enum class FieldSide {
+        Left,
+        Right
+    }
+
+    val field_side: FieldSide
+        get() {
+            var right_side =
+                (estimatedPose.getY() > FIELD_WIDTH_METERS / 2.0).xor(
+                    DriverStation.getAlliance().getOrNull() == DriverStation.Alliance.Red
+                )
+            return if (right_side) {
+                FieldSide.Right
+            } else {
+                FieldSide.Left
+            }
+        }
+
     val signals: Array<BaseStatusSignal>
         get() = io.signals
 
