@@ -5,8 +5,10 @@ import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain
 import com.frcteam3636.bunnybots26.subsystems.poseEstimator.PoseEstimator.FIELD_LAYOUT
 import com.frcteam3636.bunnybots26.utils.math.TAU
 import com.frcteam3636.bunnybots26.utils.math.degrees
+import com.frcteam3636.bunnybots26.utils.math.inSeconds
 import com.frcteam3636.bunnybots26.utils.math.meters
 import com.frcteam3636.bunnybots26.utils.math.radians
+import edu.wpi.first.math.MathUtil
 import edu.wpi.first.math.VecBuilder
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator
 import edu.wpi.first.math.geometry.*
@@ -27,7 +29,7 @@ open class PoseEstimatorInputs {
 }
 
 interface PoseEstimatorIO {
-    fun clearMeasurementData(inputs: PoseEstimatorInputs)
+    fun clearVisionMeasurementData(inputs: PoseEstimatorInputs)
     fun updateInputs(inputs: PoseEstimatorInputs)
     fun resetPose(pose: Pose2d)
     fun resetRotation(rotation: Rotation2d)
@@ -56,14 +58,14 @@ class PoseEstimatorIOReal : PoseEstimatorIO {
             Drivetrain.inputs.measuredPositions.toTypedArray(),
             Pose2d.kZero,
             VecBuilder.fill(0.02, 0.02, 0.005),
-            VecBuilder.fill(0.0, 0.0, 0.0)
+            VecBuilder.fill(0.0, 0.0, 0.0) //TODO("Tune")
         )
     }
     private val modulePositions = Array(4) { SwerveModulePosition() }
     private val lastModulePositions = Array(4) { SwerveModulePosition() }
     private val moduleDeltas = Array(4) { SwerveModulePosition() }
 
-    override fun clearMeasurementData(inputs: PoseEstimatorInputs) {
+    override fun clearVisionMeasurementData(inputs: PoseEstimatorInputs) {
         inputs.acceptedVisionPoses = arrayOf()
         inputs.rejectedVisionPoses = arrayOf()
         inputs.observedTags = intArrayOf()
@@ -82,11 +84,8 @@ class PoseEstimatorIOReal : PoseEstimatorIO {
                 }
                 // Compute deltas in-place
                 for (index in 0..3) {
-                    val deltaDistance =
-                        modulePositions[index].distanceMeters -
-                                lastModulePositions[index].distanceMeters
-                    val deltaAngle =
-                        modulePositions[index].angle - lastModulePositions[index].angle
+                    val deltaDistance = modulePositions[index].distanceMeters - lastModulePositions[index].distanceMeters
+                    val deltaAngle = modulePositions[index].angle - lastModulePositions[index].angle
                     moduleDeltas[index].distanceMeters = deltaDistance
                     moduleDeltas[index].angle = modulePositions[index].angle
 
@@ -129,7 +128,7 @@ class PoseEstimatorIOReal : PoseEstimatorIO {
                     m.isLowQuality -> reject(inputs, m)
                     m.pose.x < 0.0 || m.pose.y < 0.0 -> reject(inputs, m)
                     m.pose.x > FIELD_LAYOUT.fieldLength || m.pose.y > FIELD_LAYOUT.fieldWidth -> reject(inputs, m)
-                    !Robot.isEnabled && abs((m.pose.rotation.radians - poseEstimator.estimatedPosition.rotation.radians).mod(TAU)) > 0.0872 -> reject(inputs, m)
+                    !Robot.isEnabled && abs(MathUtil.angleModulus(m.pose.rotation.radians - poseEstimator.estimatedPosition.rotation.radians)) > 0.0872 -> reject(inputs, m)
                     else -> accept(inputs, m)
                 }
             }
@@ -156,6 +155,7 @@ class PoseEstimatorIOReal : PoseEstimatorIO {
     private fun accept(inputs: PoseEstimatorInputs, m: AbsolutePoseMeasurement) {
         acceptedVisionMeasurements.add(m)
         inputs.acceptedVisionPoses += m.pose
+        poseEstimator.addVisionMeasurement(m.pose, m.timestamp.inSeconds())
     }
 
     private fun reject(inputs: PoseEstimatorInputs, m: AbsolutePoseMeasurement) {
@@ -170,7 +170,7 @@ class PoseEstimatorIOReal : PoseEstimatorIO {
 
 class PoseEstimatorIOSim : PoseEstimatorIO {
 
-    override fun clearMeasurementData(inputs: PoseEstimatorInputs) {
+    override fun clearVisionMeasurementData(inputs: PoseEstimatorInputs) {
         TODO("Not yet implemented")
     }
 

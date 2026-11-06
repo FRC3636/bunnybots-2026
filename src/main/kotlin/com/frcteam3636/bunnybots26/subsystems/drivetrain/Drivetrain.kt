@@ -121,7 +121,7 @@ object Drivetrain : Subsystem {
         return run {
             val velocityVector = inputs.chassisSpeedsField.translation2dPerSecond.toVector()
             val vectorToTarget =
-                (inputs.estimatedPose.translation - target.reference.translation).toVector()
+                (PoseEstimator.inputs.estimatedPose.translation - target.reference.translation).toVector()
             // If we are moving away from the target, stop the robot immediately
             val adjustedChassisSpeeds = inputs.chassisSpeeds.apply { // do not know if this mod
                 if (vectorToTarget.dot(velocityVector) <= 0) {
@@ -132,7 +132,7 @@ object Drivetrain : Subsystem {
 
             autoPilot = Autopilot(autoPilotProfile.withErrorXY(target.tolerance))
 
-            val output = autoPilot.calculate(inputs.estimatedPose, inputs.chassisSpeeds, target)
+            val output = autoPilot.calculate(PoseEstimator.inputs.estimatedPose, inputs.chassisSpeeds, target)
 
             val rotationOutput =
                 autoPilotRotationPID.calculate(
@@ -152,7 +152,7 @@ object Drivetrain : Subsystem {
             Logger.recordOutput("Drivetrain/Auto/Target", target.reference)
             Logger.recordOutput("Drivetrain/Auto/TargetEndVelocity", target.velocity)
         }
-            .until { autoPilot.atTarget(inputs.estimatedPose, target) }
+            .until { autoPilot.atTarget(PoseEstimator.inputs.estimatedPose, target) }
             .finallyDo { -> io.setDesiredStates(BRAKE_POSITION) }
     }
 

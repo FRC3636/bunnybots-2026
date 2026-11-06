@@ -38,13 +38,9 @@ open class DrivetrainInputs {
     var gyroConnected = true
     var measuredStates = PerCorner.generate { SwerveModuleState() }
     var measuredPositions = PerCorner.generate { SwerveModulePosition() }
-    var moduleTemperatures = PerCorner.generate {
-        SwerveModuleTemperature(0.0.celsius, 0.0.celsius)
-    }
-
+    var moduleTemperatures = PerCorner.generate { SwerveModuleTemperature(0.0.celsius, 0.0.celsius) }
     var chassisSpeeds = ChassisSpeeds()
     var chassisSpeedsField = ChassisSpeeds()
-    var estimatedPose = Pose2d()
 }
 
 interface DrivetrainIO {
@@ -74,10 +70,12 @@ interface DrivetrainIO {
 /** Drivetrain I/O layer that uses real swerve modules along with a Pigeon gyro. */
 class DrivetrainIOReal(override val modules: PerCorner<SwerveModule>) : DrivetrainIO {
 
-    val gyroConfig: MountPoseConfigs = MountPoseConfigs()
-    override val gyro = GyroPigeon(Pigeon2(CTREDeviceId.PigeonGyro)).apply {
-        gyroConfig
-    }
+    private val gyroConfig: MountPoseConfigs =
+        MountPoseConfigs()
+            .withMountPoseYaw(0.0)
+            .withMountPosePitch(0.0)
+            .withMountPoseRoll(0.0)
+    override val gyro = GyroPigeon(Pigeon2(CTREDeviceId.PigeonGyro).apply{gyroConfig})
     override val kinematics = SwerveDriveKinematics(*MODULE_POSITIONS.map { it.position.translation }.toTypedArray())
 
     override val odometryPositions get() = modules.map { it.odometryPositions }
@@ -107,7 +105,7 @@ class DrivetrainIOReal(override val modules: PerCorner<SwerveModule>) : Drivetra
     override fun setDesiredStates(states: PerCorner<SwerveModuleState>) {
         val stateArr = states.toTypedArray()
         SwerveDriveKinematics.desaturateWheelSpeeds(stateArr, FREE_SPEED)
-        modules.zip(states).forEach { (module, state) -> module.desiredState = state }
+        modules.forEachIndexed { i, module -> module.desiredState = stateArr[i] }
     }
 
     override fun updateInputs(inputs: DrivetrainInputs) {
@@ -124,11 +122,7 @@ class DrivetrainIOReal(override val modules: PerCorner<SwerveModule>) : Drivetra
         inputs.gyroConnected = gyro.connected
         inputs.moduleTemperatures = modules.map { it.temperatures }
         inputs.chassisSpeeds = kinematics.cornerStatesToChassisSpeeds(inputs.measuredStates)
-        inputs.chassisSpeedsField = if (DriverStation.getAlliance().getOrNull() == DriverStation.Alliance.Blue) {
-            ChassisSpeeds.fromRobotRelativeSpeeds(inputs.chassisSpeeds, inputs.estimatedPose.rotation)
-        } else {
-            ChassisSpeeds.fromFieldRelativeSpeeds(inputs.chassisSpeeds, inputs.estimatedPose.rotation + Rotation2d.k180deg)
-        }
+        inputs.chassisSpeedsField = ChassisSpeeds.fromRobotRelativeSpeeds(inputs.chassisSpeeds, PoseEstimator.inputs.estimatedPose.rotation)
     }
 
     private fun isInDeadband(translation: Translation2d) =
