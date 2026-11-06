@@ -8,6 +8,7 @@ import com.frcteam3636.bunnybots26.robot.Robot.Model
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain.Constants.BRAKE_POSITION
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain.Constants.DRIVE_BASE_RADIUS
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain.Constants.MODULE_POSITIONS
+import com.frcteam3636.bunnybots26.subsystems.poseEstimator.PoseEstimator
 import com.frcteam3636.bunnybots26.utils.autos.APTargetWithTolerance
 import com.frcteam3636.bunnybots26.utils.autos.flipTargetHorizontal
 import com.frcteam3636.bunnybots26.utils.autos.flipTargetVertical
@@ -37,15 +38,19 @@ import org.littletonrobotics.junction.Logger
 import kotlin.math.abs
 import kotlin.math.hypot
 
-enum class FieldSide {
-    Left,
-    Right
-}
-
 object Drivetrain : Subsystem {
     private val io =
         when (Robot.model) {
-            Model.SIMULATION -> DrivetrainIOSim()
+            Model.SIMULATION -> DrivetrainIOSim(
+                gyro = TODO(),
+                modules = TODO(),
+                kinematics = TODO(),
+                odometryPositions = TODO(),
+                odometryTimestamps = TODO(),
+                odometryYawPositions = TODO(),
+                validTimestamps = TODO(),
+                signals = TODO()
+            )
             Model.COMPETITION ->
                 DrivetrainIOReal(
                     MODULE_POSITIONS.zip(Constants.MODULE_CAN_IDS).map { (corner, ids) ->
@@ -98,11 +103,6 @@ object Drivetrain : Subsystem {
         { io.setDesiredStates(BRAKE_POSITION) }
     )
 
-    fun resetPose(pose: Pose2d): Command = Commands.runOnce(
-        { io.resetEstimatedPose(pose) }
-    )
-
-    // --- AUTOPILOT ---
 
     val autoPilotConstraints: APConstraints =
         APConstraints().withVelocity(7.0).withAcceleration(10.0).withJerk(5.0)
@@ -136,7 +136,7 @@ object Drivetrain : Subsystem {
 
             val rotationOutput =
                 autoPilotRotationPID.calculate(
-                    inputs.estimatedRotation.radians,
+                    PoseEstimator.inputs.estimatedRotation.radians,
                     output.targetAngle.radians
                 )
 
@@ -144,7 +144,7 @@ object Drivetrain : Subsystem {
                 output.vx,
                 output.vy,
                 rotationOutput.radiansPerSecond,
-                inputs.estimatedRotation
+                PoseEstimator.inputs.estimatedRotation
             ))
 
             Logger.recordOutput("Drivetrain/Auto/Output", output)
@@ -162,6 +162,14 @@ object Drivetrain : Subsystem {
         if (flipV) transformedTarget = flipTargetVertical(transformedTarget)
         return alignWithAutopilot(transformedTarget as APTargetWithTolerance)
     }
+
+
+    val odometryPositions   get() = io.odometryPositions
+    val odometryTimestamps  get() = io.odometryTimestamps
+    val odometryYawPositions get() = io.odometryYawPositions
+    val validTimestamps     get() = io.validTimestamps
+    val kinematics          get() = io.kinematics
+
 
     private val limiter = SlewRateLimiter(0.05)
     private var wheelRadiusModuleStates = DoubleArray(4)

@@ -13,7 +13,7 @@ import com.frcteam3636.bunnybots26.CANcoder
 import com.frcteam3636.bunnybots26.CTREDeviceId
 import com.frcteam3636.bunnybots26.robot.Robot
 import com.frcteam3636.bunnybots26.TalonFX
-import com.frcteam3636.bunnybots26.subsystems.vision.PhoenixOdometryThread
+import com.frcteam3636.bunnybots26.subsystems.poseEstimator.PhoenixOdometryThread
 import com.frcteam3636.bunnybots26.utils.math.*
 import com.frcteam3636.bunnybots26.utils.swerve.SwerveModuleTemperature
 import com.frcteam3636.bunnybots26.utils.swerve.speed

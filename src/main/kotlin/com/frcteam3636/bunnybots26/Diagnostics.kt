@@ -2,9 +2,8 @@ package com.frcteam3636.bunnybots26
 
 import com.ctre.phoenix6.CANBus
 import com.frcteam3636.bunnybots26.robot.Robot
-import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain
-import com.frcteam3636.bunnybots26.subsystems.drivetrain.Gyro
-import com.frcteam3636.bunnybots26.subsystems.vision.Vision
+import com.frcteam3636.bunnybots26.subsystems.poseEstimator.Gyro
+import com.frcteam3636.bunnybots26.subsystems.poseEstimator.PoseEstimator
 import com.frcteam3636.bunnybots26.utils.cachedStatus
 import edu.wpi.first.wpilibj.Alert
 import edu.wpi.first.wpilibj.Alert.AlertType
@@ -120,7 +119,7 @@ object Diagnostics {
 //            reportAlert(RobotAlert.DubiousAutoChoice)
 //        }
 
-        if (!Vision.inputs.allProvidersConnected) {
+        if (!PoseEstimator.inputs.allCamerasConnected) {
             reportAlert(RobotAlert.LimelightDisconnected)
         }
 

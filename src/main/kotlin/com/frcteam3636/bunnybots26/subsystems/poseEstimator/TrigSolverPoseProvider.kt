@@ -1,7 +1,7 @@
-package com.frcteam3636.bunnybots26.subsystems.vision
+package com.frcteam3636.bunnybots26.subsystems.poseEstimator
 
 import com.frcteam3636.bunnybots26.robot.RobotState
-import com.frcteam3636.bunnybots26.subsystems.vision.Vision.FIELD_LAYOUT
+import com.frcteam3636.bunnybots26.subsystems.poseEstimator.PoseEstimator.FIELD_LAYOUT
 import com.frcteam3636.bunnybots26.utils.math.inDegreesPerSecond
 import com.frcteam3636.bunnybots26.utils.math.inRadians
 import com.frcteam3636.bunnybots26.utils.math.radians

@@ -3,25 +3,20 @@ package com.frcteam3636.bunnybots26.subsystems.drivetrain
 import com.ctre.phoenix6.BaseStatusSignal
 import com.ctre.phoenix6.configs.MountPoseConfigs
 import com.frcteam3636.bunnybots26.CTREDeviceId
-import com.frcteam3636.bunnybots26.Diagnostics
 import com.frcteam3636.bunnybots26.Pigeon2
 import com.frcteam3636.bunnybots26.robot.Robot
-import com.frcteam3636.bunnybots26.robot.Robot.odometryLock
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain.Constants.BRAKE_POSITION
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain.Constants.FREE_SPEED
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain.Constants.JOYSTICK_DEADBAND
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain.Constants.MODULE_POSITIONS
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain.Constants.ROTATION_SENSITIVITY
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain.Constants.TRANSLATION_SENSITIVITY
-import com.frcteam3636.bunnybots26.subsystems.vision.PhoenixOdometryThread
-import com.frcteam3636.bunnybots26.subsystems.vision.Vision
-import com.frcteam3636.bunnybots26.subsystems.vision.Vision.FIELD_LAYOUT
-import com.frcteam3636.bunnybots26.subsystems.vision.addAbsolutePoseMeasurement
-import com.frcteam3636.bunnybots26.utils.autos.FIELD_WIDTH_METERS
+import com.frcteam3636.bunnybots26.subsystems.poseEstimator.Gyro
+import com.frcteam3636.bunnybots26.subsystems.poseEstimator.GyroPigeon
+import com.frcteam3636.bunnybots26.subsystems.poseEstimator.PhoenixOdometryThread
+import com.frcteam3636.bunnybots26.subsystems.poseEstimator.PoseEstimator
 import com.frcteam3636.bunnybots26.utils.math.*
 import com.frcteam3636.bunnybots26.utils.swerve.*
-import edu.wpi.first.math.VecBuilder
-import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.geometry.Translation2d
@@ -29,16 +24,8 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics
 import edu.wpi.first.math.kinematics.SwerveModulePosition
 import edu.wpi.first.math.kinematics.SwerveModuleState
-import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.units.measure.Voltage
 import edu.wpi.first.wpilibj.DriverStation
-import org.ironmaple.simulation.SimulatedArena
-import org.ironmaple.simulation.drivesims.COTS
-import org.ironmaple.simulation.drivesims.SelfControlledSwerveDriveSimulation
-import org.ironmaple.simulation.drivesims.SwerveDriveSimulation
-import org.ironmaple.simulation.drivesims.configs.DriveTrainSimulationConfig
-import org.littletonrobotics.junction.Logger
-import org.photonvision.simulation.VisionSystemSim
 import org.team9432.annotation.Logged
 import kotlin.jvm.optionals.getOrNull
 import kotlin.math.*
@@ -58,125 +45,72 @@ open class DrivetrainInputs {
     var chassisSpeeds = ChassisSpeeds()
     var chassisSpeedsField = ChassisSpeeds()
     var estimatedPose = Pose2d()
-    /// NOT equivalent to estimatedPose.rotation
-    var estimatedRotation = Rotation2d()
 }
 
-abstract class DrivetrainIO {
-    protected abstract val gyro: Gyro
-    abstract val modules: PerCorner<out SwerveModule>
+interface DrivetrainIO {
+    val gyro: Gyro
+    val modules: PerCorner<out SwerveModule>
+    val kinematics:SwerveDriveKinematics
 
-    abstract fun updateWheelOdometry(inputs: DrivetrainInputs)
+    val odometryPositions: PerCorner<Array<SwerveModulePosition>>
+    val odometryTimestamps: DoubleArray
+    val odometryYawPositions: DoubleArray
+    val validTimestamps: Int
+    val signals: Array<BaseStatusSignal>
+
+    fun getDesiredSpeeds(): ChassisSpeeds
+    fun setDesiredSpeeds(speeds: ChassisSpeeds)
+    fun getDesiredStates(): PerCorner<SwerveModuleState>
+    fun setDesiredStates(states: PerCorner<SwerveModuleState>)
+
+    fun updateInputs(inputs: DrivetrainInputs)
+    fun drive(translationInput: Translation2d, rotationInput: Translation2d)
+    fun driveWithoutDeadband(translationInput: Translation2d, rotationInput: Translation2d)
+    fun stop()
+    fun zeroGyro(isReversed: Boolean = false, offset: Rotation2d = Rotation2d.kZero)
+    fun runCharacterization(voltage: Voltage, shouldSpin: Boolean = false, shouldStraight: Boolean = false)
+}
+
+/** Drivetrain I/O layer that uses real swerve modules along with a Pigeon gyro. */
+class DrivetrainIOReal(override val modules: PerCorner<SwerveModule>) : DrivetrainIO {
+
+    val gyroConfig: MountPoseConfigs = MountPoseConfigs()
+    override val gyro = GyroPigeon(Pigeon2(CTREDeviceId.PigeonGyro)).apply {
+        gyroConfig
+    }
+    override val kinematics = SwerveDriveKinematics(*MODULE_POSITIONS.map { it.position.translation }.toTypedArray())
+
+    override val odometryPositions get() = modules.map { it.odometryPositions }
+    override val odometryTimestamps get() = modules[DrivetrainCorner.FRONT_LEFT].odometryTimestamps
+    override val odometryYawPositions: DoubleArray get() = gyro.odometryYawPositions
+    override val validTimestamps get() = modules[DrivetrainCorner.FRONT_LEFT].validTimestamps
+    override val signals: Array<BaseStatusSignal> get() {
+        var signals = arrayOf<BaseStatusSignal>()
+        modules.forEach { module -> signals += module.signals }
+        signals += gyro.signals
+        return signals
+    }
 
     init {
         PhoenixOdometryThread.start()
     }
 
-    // Helper for converting a desired drivetrain velocity into the speeds and angles for each swerve module
-    val kinematics =
-        SwerveDriveKinematics(*MODULE_POSITIONS.map { it.position.translation }.toTypedArray())
+    override fun getDesiredSpeeds(): ChassisSpeeds = kinematics.cornerStatesToChassisSpeeds(getDesiredStates())
 
-    // Helper for estimating the location of the drivetrain on the field, combining wheel and vision data
-    val poseEstimator =
-        SwerveDrivePoseEstimator(
-            kinematics, // swerve drive kinematics
-            gyro.rotation, // initial gyro rotation
-            PerCorner.generate { SwerveModulePosition() }.toTypedArray(), // initial module positions
-            Pose2d.kZero, // initial pose
-            VecBuilder.fill(0.02, 0.02, 0.005), // Overwrite each measurement
-            VecBuilder.fill(0.0, 0.0, 0.0)
-        )
-
-    fun getDesiredSpeeds(): ChassisSpeeds = kinematics.cornerStatesToChassisSpeeds(getDesiredStates())
-    fun setDesiredSpeeds(speeds: ChassisSpeeds) {
+    override fun setDesiredSpeeds(speeds: ChassisSpeeds) {
         val discretized = ChassisSpeeds.discretize(speeds, Robot.period)
         setDesiredStates(kinematics.toCornerSwerveModuleStates(discretized))
     }
 
-    fun getDesiredStates(): PerCorner<SwerveModuleState> = modules.map { it.desiredState }
-    fun setDesiredStates(states: PerCorner<SwerveModuleState>) {
+    override fun getDesiredStates(): PerCorner<SwerveModuleState> = modules.map { it.desiredState }
+
+    override fun setDesiredStates(states: PerCorner<SwerveModuleState>) {
         val stateArr = states.toTypedArray()
         SwerveDriveKinematics.desaturateWheelSpeeds(stateArr, FREE_SPEED)
         modules.zip(states).forEach { (module, state) -> module.desiredState = state }
     }
 
-    val odometryPositions: PerCorner<Array<SwerveModulePosition>>
-        get() = modules.map { it.odometryPositions }
-
-    val odometryTimestamps: DoubleArray
-        get() = modules[DrivetrainCorner.FRONT_LEFT].odometryTimestamps
-
-    val odometryYawPositions: DoubleArray
-        get() = gyro.odometryYawPositions
-
-    val validTimestamps: Int
-        get() = modules[DrivetrainCorner.FRONT_LEFT].validTimestamps
-
-    val signals: Array<BaseStatusSignal>
-        get() {
-            var signals = arrayOf<BaseStatusSignal>()
-
-            modules.forEach { module ->
-                signals += module.signals
-            }
-
-            signals += gyro.signals
-            return signals
-        }
-
-    val lastModulePositions = Array(4) { SwerveModulePosition() }
-    val modulePositions = Array(4) { SwerveModulePosition() }
-    val moduleDeltas = Array(4) { SwerveModulePosition() }
-
-    private var estimatedRotation = Rotation2d()
-
-    fun fieldSide(): FieldSide {
-        val rightSide =
-            (poseEstimator.estimatedPosition.y > FIELD_WIDTH_METERS / 2.0).xor(
-                DriverStation.getAlliance().getOrNull() == DriverStation.Alliance.Red
-            )
-        return if (rightSide) {
-            FieldSide.Right
-        } else {
-            FieldSide.Left
-        }
-    }
-
-    fun isInDeadband(translation: Translation2d) =
-        abs(translation.x) < JOYSTICK_DEADBAND && abs(translation.y) < JOYSTICK_DEADBAND
-
-    fun calculateInputCurve(input: Double): Double {
-        val exponent = 2.5
-        return input.absoluteValue.pow(exponent).withSign(input)
-    }
-
-    fun drive(translationInput: Translation2d, rotationInput: Translation2d) {
-        if (isInDeadband(translationInput) && isInDeadband(rotationInput)) {
-            // No joystick input - stop moving!
-            stop()
-        } else {
-            driveWithoutDeadband(translationInput, rotationInput)
-        }
-    }
-
-    @Suppress("SameParameterValue")
-    fun driveWithoutDeadband(
-        translationInput: Translation2d,
-        rotationInput: Translation2d
-    ) {
-        setDesiredSpeeds(ChassisSpeeds.fromFieldRelativeSpeeds(
-            calculateInputCurve(translationInput.x) *
-                    FREE_SPEED.inMetersPerSecond() *
-                    TRANSLATION_SENSITIVITY,
-            calculateInputCurve(translationInput.y) *
-                    FREE_SPEED.inMetersPerSecond() *
-                    TRANSLATION_SENSITIVITY,
-            rotationInput.y * TAU * ROTATION_SENSITIVITY,
-            estimatedRotation
-        ))
-    }
-
-    fun updateInputs(inputs: DrivetrainInputs) {
+    override fun updateInputs(inputs: DrivetrainInputs) {
         gyro.periodic()
         modules.forEachIndexed { i, module ->
             module.periodic()
@@ -185,32 +119,53 @@ abstract class DrivetrainIO {
             inputs.measuredStatesRelativeToField[i] = SwerveModuleState( module.state.speedMetersPerSecond,
                 module.position.angle + gyro.rotation)
         }
-
         inputs.gyroRotation = gyro.rotation
         inputs.gyroVelocity = gyro.velocity
         inputs.gyroConnected = gyro.connected
         inputs.moduleTemperatures = modules.map { it.temperatures }
-
-        // new stuff
-        inputs.estimatedPose = poseEstimator.estimatedPosition
         inputs.chassisSpeeds = kinematics.cornerStatesToChassisSpeeds(inputs.measuredStates)
         inputs.chassisSpeedsField = if (DriverStation.getAlliance().getOrNull() == DriverStation.Alliance.Blue) {
             ChassisSpeeds.fromRobotRelativeSpeeds(inputs.chassisSpeeds, inputs.estimatedPose.rotation)
         } else {
             ChassisSpeeds.fromFieldRelativeSpeeds(inputs.chassisSpeeds, inputs.estimatedPose.rotation + Rotation2d.k180deg)
         }
-        inputs.estimatedRotation = inputs.estimatedPose.rotation; // could get overriden by odom function
+    }
 
-        estimatedRotation = inputs.estimatedRotation
+    private fun isInDeadband(translation: Translation2d) =
+        abs(translation.x) < JOYSTICK_DEADBAND && abs(translation.y) < JOYSTICK_DEADBAND
 
-        updateWheelOdometry(inputs)
+    private fun calculateInputCurve(input: Double): Double {
+        val exponent = 2.5
+        return input.absoluteValue.pow(exponent).withSign(input)
+    }
 
-        for (m in Vision.drainAcceptedMeasurements()) {
-            poseEstimator.addAbsolutePoseMeasurement(m)
+    override fun drive(translationInput: Translation2d, rotationInput: Translation2d) {
+        if (isInDeadband(translationInput) && isInDeadband(rotationInput)) {
+            // No joystick input - stop moving!
+            stop()
+        } else {
+            driveWithoutDeadband(translationInput, rotationInput)
         }
     }
 
-    fun zeroGyro(isReversed: Boolean = false, offset: Rotation2d = Rotation2d.kZero) {
+    override fun driveWithoutDeadband(translationInput: Translation2d, rotationInput: Translation2d) {
+        setDesiredSpeeds(ChassisSpeeds.fromFieldRelativeSpeeds(
+            calculateInputCurve(translationInput.x) *
+                    FREE_SPEED.inMetersPerSecond() *
+                    TRANSLATION_SENSITIVITY,
+            calculateInputCurve(translationInput.y) *
+                    FREE_SPEED.inMetersPerSecond() *
+                    TRANSLATION_SENSITIVITY,
+            rotationInput.y * TAU * ROTATION_SENSITIVITY,
+            PoseEstimator.inputs.estimatedRotation
+        ))
+    }
+
+    override fun stop() {
+        setDesiredStates(BRAKE_POSITION)
+    }
+
+    override fun zeroGyro(isReversed: Boolean, offset: Rotation2d) {
         println("Zeroing gyro")
 
         // Flip the heading if needed
@@ -224,19 +179,10 @@ abstract class DrivetrainIO {
             zeroPos += Rotation2d.k180deg
         }
 
-        poseEstimator.resetRotation(zeroPos + offset)
+        PoseEstimator.resetRotation(zeroPos + offset)
     }
 
-    fun resetEstimatedPose(pose: Pose2d) {
-        poseEstimator.resetPose(pose)
-    }
-
-    @Suppress("unused")
-    fun stop() {
-        setDesiredStates(BRAKE_POSITION)
-    }
-
-    fun runCharacterization(voltage: Voltage, shouldSpin: Boolean = false, shouldStraight: Boolean = false) {
+    override fun runCharacterization(voltage: Voltage, shouldSpin: Boolean, shouldStraight: Boolean) {
         if (shouldSpin) {
             for ((i, element) in MODULE_POSITIONS.withIndex()) {
                 val trans = element.position.translation
@@ -261,119 +207,69 @@ abstract class DrivetrainIO {
                 module.characterize(voltage, null)
             }
         }
-
-    }
-}
-
-/** Drivetrain I/O layer that uses real swerve modules along with a Pigeon gyro. */
-class DrivetrainIOReal(override val modules: PerCorner<SwerveModule>) : DrivetrainIO() {
-    val gyroConfig: MountPoseConfigs = MountPoseConfigs()
-    override val gyro = GyroPigeon(Pigeon2(CTREDeviceId.PigeonGyro)).apply {
-        gyroConfig
     }
 
-    override fun updateWheelOdometry(inputs: DrivetrainInputs) {
-        try {
-            odometryLock.lock()
-            Logger.recordOutput("Drivetrain/SpeedsFieldRelative", inputs.chassisSpeedsField)
-            Logger.recordOutput("Drivetrain/ValidTimestamps", validTimestamps)
-            for (i in 0 ..< validTimestamps) {
-                for (index in 0..3) {
-                    val pos = odometryPositions[index][i]
-                    modulePositions[index].distanceMeters = pos.distanceMeters
-                    modulePositions[index].angle = pos.angle
-                }
-
-                // Compute deltas in-place
-                for (index in 0..3) {
-                    val deltaDistance =
-                        modulePositions[index].distanceMeters -
-                                lastModulePositions[index].distanceMeters
-                    val deltaAngle =
-                        modulePositions[index].angle - lastModulePositions[index].angle
-                    moduleDeltas[index].distanceMeters = deltaDistance
-                    moduleDeltas[index].angle = modulePositions[index].angle
-
-                    // Update last positions
-                    lastModulePositions[index] =
-                        SwerveModulePosition(
-                            modulePositions[index].distanceMeters,
-                            modulePositions[index].angle
-                        )
-                }
-
-                inputs.estimatedRotation =
-                    if (inputs.gyroConnected) {
-                        Rotation2d(odometryYawPositions[i].degrees)
-                    } else {
-                        inputs.estimatedRotation.plus(
-                            Rotation2d(
-                                kinematics.toTwist2d(*moduleDeltas).dtheta.radians
-                            )
-                        )
-                    }
-                poseEstimator.updateWithTime(
-                    odometryTimestamps[i],
-                    inputs.estimatedRotation,
-                    modulePositions
-                )
-            }
-        } finally {
-            odometryLock.unlock()
-        }
-
-    }
 }
 
 /** Drivetrain I/O layer that uses simulated swerve modules along with a simulated gyro with an angle based off their movement. */
-class DrivetrainIOSim : DrivetrainIO() {
-    val vision = VisionSystemSim("main").apply {
-        addAprilTags(FIELD_LAYOUT)
+class DrivetrainIOSim(
+    override val gyro: Gyro,
+    override val modules: PerCorner<out SwerveModule>,
+    override val kinematics: SwerveDriveKinematics,
+    override val odometryPositions: PerCorner<Array<SwerveModulePosition>>,
+    override val odometryTimestamps: DoubleArray,
+    override val odometryYawPositions: DoubleArray,
+    override val validTimestamps: Int,
+    override val signals: Array<BaseStatusSignal>
+) : DrivetrainIO {
+    override fun getDesiredSpeeds(): ChassisSpeeds {
+        TODO("Not yet implemented")
     }
 
-    val driveTrainSimulationConfig: DriveTrainSimulationConfig = DriveTrainSimulationConfig.Default()
-        .withGyro(COTS.ofPigeon2())
-        .withSwerveModule(COTS.ofMark4n(
-            DCMotor.getKrakenX60(1),
-            DCMotor.getKrakenX44(1),
-            COTS.WHEELS.SLS_PRINTED_WHEELS.cof,
-            3
-        ))
-        .withTrackLengthTrackWidth(
-            Drivetrain.Constants.ROBOT_LENGTH,
-            Drivetrain.Constants.ROBOT_WIDTH
-        )
-        .withBumperSize(
-            Drivetrain.Constants.BUMPER_LENGTH,
-            Drivetrain.Constants.BUMPER_WIDTH
-        ).withRobotMass(
-            88.581.pounds
-        )
-
-    val swerveDriveSimulation: SwerveDriveSimulation = SwerveDriveSimulation(
-        driveTrainSimulationConfig,
-        Pose2d(3.0, 3.0, Rotation2d()
-        )
-    )
-
-
-    val simulatedDrive: SelfControlledSwerveDriveSimulation = SelfControlledSwerveDriveSimulation(swerveDriveSimulation)
-
-    fun updateChassisSpeeds(chassisSpeeds: ChassisSpeeds) {
-        simulatedDrive.runChassisSpeeds(chassisSpeeds, Translation2d(), true, false)
+    override fun setDesiredSpeeds(speeds: ChassisSpeeds) {
+        TODO("Not yet implemented")
     }
 
-    override val modules = PerCorner.generate { SimSwerveModule() }
-    override val gyro = GyroMapleSim(swerveDriveSimulation.gyroSimulation)
-
-    override fun updateWheelOdometry(inputs: DrivetrainInputs) {
-        super.updateInputs(inputs)
-        vision.update(poseEstimator.estimatedPosition)
-        Logger.recordOutput("FieldSimulation/RobotPosition", swerveDriveSimulation.simulatedDriveTrainPose)
-        Diagnostics.report(gyro)
+    override fun getDesiredStates(): PerCorner<SwerveModuleState> {
+        TODO("Not yet implemented")
     }
 
-    init {
-        SimulatedArena.getInstance().addDriveTrainSimulation(simulatedDrive.driveTrainSimulation)
+    override fun setDesiredStates(states: PerCorner<SwerveModuleState>) {
+        TODO("Not yet implemented")
     }
+
+    override fun updateInputs(inputs: DrivetrainInputs) {
+        TODO("Not yet implemented")
+    }
+
+    override fun drive(
+        translationInput: Translation2d,
+        rotationInput: Translation2d
+    ) {
+        TODO("Not yet implemented")
+    }
+
+    override fun driveWithoutDeadband(
+        translationInput: Translation2d,
+        rotationInput: Translation2d
+    ) {
+        TODO("Not yet implemented")
+    }
+
+    override fun stop() {
+        TODO("Not yet implemented")
+    }
+
+    override fun zeroGyro(isReversed: Boolean, offset: Rotation2d) {
+        TODO("Not yet implemented")
+    }
+
+    override fun runCharacterization(
+        voltage: Voltage,
+        shouldSpin: Boolean,
+        shouldStraight: Boolean
+    ) {
+        TODO("Not yet implemented")
+    }
+
 }

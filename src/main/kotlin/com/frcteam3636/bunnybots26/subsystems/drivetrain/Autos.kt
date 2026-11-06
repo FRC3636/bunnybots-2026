@@ -1,5 +1,6 @@
 package com.frcteam3636.bunnybots26.subsystems.drivetrain
 
+import com.frcteam3636.bunnybots26.subsystems.poseEstimator.PoseEstimator
 import com.frcteam3636.bunnybots26.utils.autos.APTargetWithTolerance
 import com.frcteam3636.bunnybots26.utils.autos.flipTarget
 import edu.wpi.first.wpilibj2.command.Command
@@ -11,6 +12,6 @@ interface Auto {
 
 
 fun resetOdom(pose: APTargetWithTolerance,flipH: Boolean,flipV: Boolean): Command =
-    Drivetrain.resetPose(
+    PoseEstimator.resetPose(
         flipTarget(pose,flipH = flipH,flipV = flipV).reference
     )
