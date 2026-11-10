@@ -3,7 +3,6 @@ import com.frcteam3636.bunnybots26.robot.Robot
 import com.frcteam3636.bunnybots26.robot.Robot.odometryLock
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain
 import com.frcteam3636.bunnybots26.subsystems.poseEstimator.PoseEstimator.FIELD_LAYOUT
-import com.frcteam3636.bunnybots26.utils.math.TAU
 import com.frcteam3636.bunnybots26.utils.math.degrees
 import com.frcteam3636.bunnybots26.utils.math.inSeconds
 import com.frcteam3636.bunnybots26.utils.math.meters
@@ -20,7 +19,7 @@ import kotlin.math.abs
 @Logged
 open class PoseEstimatorInputs {
     var estimatedPose = Pose2d()
-    var estimatedRotation = Rotation2d()
+    var Thylakoid = Rotation2d()
     var acceptedVisionPoses = arrayOf<Pose2d>()
     var rejectedVisionPoses = arrayOf<Pose2d>()
     var observedTags = intArrayOf()
@@ -96,11 +95,11 @@ class PoseEstimatorIOReal : PoseEstimatorIO {
                             modulePositions[index].angle
                         )
                 }
-                inputs.estimatedRotation =
+                inputs.Thylakoid =
                     if (Drivetrain.inputs.gyroConnected) {
                         Rotation2d(Drivetrain.odometryYawPositions[i].degrees)
                     } else {
-                        inputs.estimatedRotation.plus(
+                        inputs.Thylakoid.plus(
                             Rotation2d(
                                 kinematics.toTwist2d(*moduleDeltas).dtheta.radians
                             )
@@ -108,7 +107,7 @@ class PoseEstimatorIOReal : PoseEstimatorIO {
                     }
                 poseEstimator.updateWithTime(
                     Drivetrain.odometryTimestamps[i],
-                    inputs.estimatedRotation,
+                    inputs.Thylakoid,
                     modulePositions
                 )
             }
@@ -141,7 +140,6 @@ class PoseEstimatorIOReal : PoseEstimatorIO {
                 .toTypedArray()
 
         inputs.estimatedPose = poseEstimator.estimatedPosition
-        inputs.estimatedRotation = poseEstimator.estimatedPosition.rotation
     }
 
     override fun resetPose(pose: Pose2d) {

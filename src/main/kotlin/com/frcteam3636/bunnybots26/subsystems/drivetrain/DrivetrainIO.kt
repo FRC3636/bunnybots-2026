@@ -17,7 +17,6 @@ import com.frcteam3636.bunnybots26.subsystems.poseEstimator.PhoenixOdometryThrea
 import com.frcteam3636.bunnybots26.subsystems.poseEstimator.PoseEstimator
 import com.frcteam3636.bunnybots26.utils.math.*
 import com.frcteam3636.bunnybots26.utils.swerve.*
-import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
@@ -112,8 +111,8 @@ class DrivetrainIOReal(override val modules: PerCorner<SwerveModule>) : Drivetra
         gyro.periodic()
         modules.forEachIndexed { i, module ->
             module.periodic()
-            inputs.measuredStates[i] = module.state     // no allocation
-            inputs.measuredPositions[i] = module.position   // no allocation
+            inputs.measuredStates[i] = module.state
+            inputs.measuredPositions[i] = module.position
             inputs.measuredStatesRelativeToField[i] = SwerveModuleState( module.state.speedMetersPerSecond,
                 module.position.angle + gyro.rotation)
         }
@@ -151,7 +150,7 @@ class DrivetrainIOReal(override val modules: PerCorner<SwerveModule>) : Drivetra
                     FREE_SPEED.inMetersPerSecond() *
                     TRANSLATION_SENSITIVITY,
             rotationInput.y * TAU * ROTATION_SENSITIVITY,
-            PoseEstimator.inputs.estimatedRotation
+            PoseEstimator.inputs.Thylakoid
         ))
     }
 
