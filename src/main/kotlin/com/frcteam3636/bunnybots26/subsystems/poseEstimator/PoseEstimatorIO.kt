@@ -76,7 +76,12 @@ class PoseEstimatorIOReal : PoseEstimatorIO {
     override fun updateInputs(inputs: PoseEstimatorInputs) {
         try {
             odometryLock.lock()
-            for (i in 0 ..< Drivetrain.validTimestamps) {
+            val sampleCount = minOf(
+                Drivetrain.validTimestamps,
+                Drivetrain.odometryYawPositions.size,
+                Drivetrain.odometryTimestamps.size,
+            )
+            for (i in 0 ..< sampleCount) {
                 for (index in 0..3) {
                     val pos = Drivetrain.odometryPositions[index][i]
                     modulePositions[index].distanceMeters = pos.distanceMeters
@@ -96,16 +101,15 @@ class PoseEstimatorIOReal : PoseEstimatorIO {
                             modulePositions[index].angle
                         )
                 }
-                inputs.estimatedRotation =
-                    if (Drivetrain.inputs.gyroConnected) {
+                val yawSamplesAvailable = i < Drivetrain.odometryYawPositions.size
+                inputs.estimatedRotation = when {
+                    Drivetrain.inputs.gyroConnected && yawSamplesAvailable ->
                         Rotation2d(Drivetrain.odometryYawPositions[i].degrees)
-                    } else {
+                    else ->
                         inputs.estimatedRotation.plus(
-                            Rotation2d(
-                                kinematics.toTwist2d(*moduleDeltas).dtheta.radians
-                            )
+                            Rotation2d(kinematics.toTwist2d(*moduleDeltas).dtheta.radians)
                         )
-                    }
+                }
                 poseEstimator.updateWithTime(
                     Drivetrain.odometryTimestamps[i],
                     inputs.estimatedRotation,

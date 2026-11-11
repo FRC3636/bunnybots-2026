@@ -15,6 +15,7 @@ import com.frcteam3636.bunnybots26.utils.autos.flipTargetVertical
 import com.frcteam3636.bunnybots26.utils.fieldRelativeTranslation2d
 import com.frcteam3636.bunnybots26.utils.math.*
 import com.frcteam3636.bunnybots26.utils.swerve.Corner
+import com.frcteam3636.bunnybots26.utils.swerve.DrivetrainCorner
 import com.frcteam3636.bunnybots26.utils.swerve.PerCorner
 import com.frcteam3636.bunnybots26.utils.swerve.translation2dPerSecond
 import com.frcteam3636.bunnybots26.utils.translation2d
@@ -53,10 +54,10 @@ object Drivetrain : Subsystem {
             )
             Model.COMPETITION ->
                 DrivetrainIOReal(
-                    MODULE_POSITIONS.zip(Constants.MODULE_CAN_IDS).map { (corner, ids) ->
+                    MODULE_POSITIONS.zip(Constants.MODULE_CAN_IDS).mapWithCorner { (corner, ids), driveCorner ->
                         val (driveId, turnId, encoderId) = ids
                         Mk5nSwerveModule(
-                            DrivingTalon(driveId),
+                            DrivingTalon(driveId, inverted = (driveCorner != DrivetrainCorner.FRONT_RIGHT)),
                             TurningTalon(turnId, encoderId, corner.magnetOffset),
                             corner.position.rotation
                         )
@@ -88,9 +89,17 @@ object Drivetrain : Subsystem {
         }
 
     @Suppress("unused")
-    fun driveWithController(controller: CommandXboxController): Command = run {
-        val translationInput = Translation2d(controller.leftX, controller.leftY)
-        val rotationInput = Translation2d(controller.rightY, controller.rightX)
+    fun driveWithXboxController(controller: CommandXboxController): Command = run {
+        val translationInput = Translation2d(controller.leftY, controller.leftX)
+        val rotationInput = Translation2d(controller.rightX, controller.rightY)
+
+        io.drive(translationInput, rotationInput)
+    }
+
+    @Suppress("unused")
+    fun driveWithNintendoController(controller: CommandXboxController): Command = run {
+        val translationInput = Translation2d(controller.leftY, controller.leftX)
+        val rotationInput = Translation2d(controller.getRawAxis(3), controller.getRawAxis(2))
 
         io.drive(translationInput, rotationInput)
     }
@@ -164,11 +173,11 @@ object Drivetrain : Subsystem {
     }
 
 
-    val odometryPositions   get() = io.odometryPositions
-    val odometryTimestamps  get() = io.odometryTimestamps
+    val odometryPositions get() = io.odometryPositions
+    val odometryTimestamps get() = io.odometryTimestamps
     val odometryYawPositions get() = io.odometryYawPositions
-    val validTimestamps     get() = io.validTimestamps
-    val kinematics          get() = io.kinematics
+    val validTimestamps get() = io.validTimestamps
+    val kinematics get() = io.kinematics
 
 
     private val limiter = SlewRateLimiter(0.05)
@@ -316,11 +325,11 @@ object Drivetrain : Subsystem {
             frontLeft =
                 Corner(Pose2d(Translation2d(FRONT_LEFT_CONSTANTS.LocationX, FRONT_LEFT_CONSTANTS.LocationY), Rotation2d.kZero), FRONT_LEFT_MAGNET_OFFSET),
             frontRight =
-                Corner(Pose2d(Translation2d(FRONT_RIGHT_CONSTANTS.LocationX, FRONT_RIGHT_CONSTANTS.LocationY), Rotation2d.fromDegrees(180.0)), FRONT_RIGHT_MAGNET_OFFSET),
+                Corner(Pose2d(Translation2d(FRONT_RIGHT_CONSTANTS.LocationX, FRONT_RIGHT_CONSTANTS.LocationY), Rotation2d.kZero), FRONT_RIGHT_MAGNET_OFFSET),
             backLeft =
                 Corner(Pose2d(Translation2d(BACK_LEFT_CONSTANTS.LocationX, BACK_LEFT_CONSTANTS.LocationY), Rotation2d.kZero), BACK_LEFT_MAGNET_OFFSET),
             backRight =
-                Corner(Pose2d(Translation2d(BACK_RIGHT_CONSTANTS.LocationX, BACK_RIGHT_CONSTANTS.LocationY), Rotation2d.fromDegrees(180.0)), BACK_RIGHT_MAGNET_OFFSET),
+                Corner(Pose2d(Translation2d(BACK_RIGHT_CONSTANTS.LocationX, BACK_RIGHT_CONSTANTS.LocationY), Rotation2d.kZero), BACK_RIGHT_MAGNET_OFFSET),
         )
 
         val MODULE_CAN_IDS = PerCorner(

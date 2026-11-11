@@ -2,7 +2,6 @@ package com.frcteam3636.bunnybots26.robot
 
 import com.ctre.phoenix6.SignalLogger
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain
-import com.frcteam3636.bunnybots26.subsystems.intake.Intake
 import com.revrobotics.util.StatusLogger
 import edu.wpi.first.wpilibj.Preferences
 import edu.wpi.first.wpilibj2.command.Commands
@@ -27,16 +26,25 @@ fun configureBindings() {
 
     /*  default commands   */
 
-    Drivetrain.defaultCommand = Drivetrain.driveWithJoysticks (
-        joystickLeft.hid,
-        joystickRight.hid
-    )
+//    Drivetrain.defaultCommand = Drivetrain.driveWithJoysticks (
+//        joystickLeft.hid,
+//        joystickRight.hid
+//    )
+
+    Drivetrain.defaultCommand = Drivetrain.driveWithNintendoController(controller)
 
     /* zeroing commands */
 
+    controller.x().onTrue(
+        Commands.sequence(
+            Commands.runOnce( { println("Zeroing Gyro.") } ),
+            Drivetrain.zeroGyro()
+        ).ignoringDisable(true)
+    )
+
     joystickLeft.button(8).onTrue(
         Commands.sequence(
-            Commands.runOnce( { println("Pre-match Zeroing.") } ),
+            Commands.runOnce( { println("Zeroing Gyro.") } ),
             Drivetrain.zeroGyro()
         ).ignoringDisable(true)
     )

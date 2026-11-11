@@ -91,10 +91,19 @@ class GyroPigeon(private val pigeon: Pigeon2) : Gyro {
         )
 
     override fun periodic() {
-        odometryYawTimestamps = yawTimestampQueue.toDoubleArray()
-        odometryYawPositions = yawPositionQueue.toDoubleArray()
-        yawTimestampQueue.clear()
-        yawPositionQueue.clear()
+        odometryYawTimestamps = drain(yawTimestampQueue)
+        odometryYawPositions = drain(yawPositionQueue)
+    }
+
+    private fun drain(queue: Queue<Double>): DoubleArray {
+        val count = queue.size
+        val buffer = DoubleArray(count)
+        var filled = 0
+        while (filled < count) {
+            val v = queue.poll() ?: break
+            buffer[filled++] = v
+        }
+        return if (filled == buffer.size) buffer else buffer.copyOf(filled)
     }
 }
 

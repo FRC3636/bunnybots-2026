@@ -5,6 +5,7 @@ import com.ctre.phoenix6.configs.MountPoseConfigs
 import com.frcteam3636.bunnybots26.CTREDeviceId
 import com.frcteam3636.bunnybots26.Pigeon2
 import com.frcteam3636.bunnybots26.robot.Robot
+import com.frcteam3636.bunnybots26.robot.controller
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain.Constants.BRAKE_POSITION
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain.Constants.FREE_SPEED
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain.Constants.JOYSTICK_DEADBAND
@@ -26,6 +27,8 @@ import edu.wpi.first.math.kinematics.SwerveModulePosition
 import edu.wpi.first.math.kinematics.SwerveModuleState
 import edu.wpi.first.units.measure.Voltage
 import edu.wpi.first.wpilibj.DriverStation
+import edu.wpi.first.wpilibj2.command.CommandScheduler
+import org.littletonrobotics.junction.Logger
 import org.team9432.annotation.Logged
 import kotlin.jvm.optionals.getOrNull
 import kotlin.math.*
@@ -143,6 +146,13 @@ class DrivetrainIOReal(override val modules: PerCorner<SwerveModule>) : Drivetra
     }
 
     override fun driveWithoutDeadband(translationInput: Translation2d, rotationInput: Translation2d) {
+        Logger.recordOutput("Debug/rotationInputY", rotationInput.y)
+        Logger.recordOutput("Debug/translationInputX", translationInput.x)
+        Logger.recordOutput("Debug/translationInputY", translationInput.y)
+        Logger.recordOutput("Debug/rawLeftX",  controller.leftX)
+        Logger.recordOutput("Debug/rawLeftY",  controller.leftY)
+        Logger.recordOutput("Debug/rawRightX", controller.rightX)
+        Logger.recordOutput("Debug/rawRightY", controller.rightY)
         setDesiredSpeeds(ChassisSpeeds.fromFieldRelativeSpeeds(
             calculateInputCurve(translationInput.x) *
                     FREE_SPEED.inMetersPerSecond() *
@@ -173,7 +183,9 @@ class DrivetrainIOReal(override val modules: PerCorner<SwerveModule>) : Drivetra
             zeroPos += Rotation2d.k180deg
         }
 
-        PoseEstimator.resetRotation(zeroPos + offset)
+        gyro.rotation = zeroPos + offset
+
+        CommandScheduler.getInstance().schedule(PoseEstimator.resetRotation(zeroPos + offset))
     }
 
     override fun runCharacterization(voltage: Voltage, shouldSpin: Boolean, shouldStraight: Boolean) {
