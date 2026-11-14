@@ -79,7 +79,10 @@ object Elevator : Subsystem {
 }
 
 enum class Position(val height: Distance){
-    Stowed(0.meters)
+    Stowed(0.meters),
+    Intake(1.0.meters),
+    ScoreLow(1.0.meters),
+    ScoreHigh(1.0.meters),
 }
 
 object Constants{

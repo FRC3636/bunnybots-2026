@@ -157,9 +157,9 @@ class ElevatorIOReal : ElevatorIO {
         val PROFILE_JERK = 0.0
         private val PROFILE_VELOCITY = 350.inchesPerSecond.toAngular(1.meters)
         val PID_GAINS = PIDGains(5.0, 0.0, 0.0)
-        val ROTOR_TO_MECHANISM_GEAR_RATIO = 3
+        val ROTOR_TO_MECHANISM_GEAR_RATIO = 3.0
         val SPOOL_RADIUS = 0.0.meters
-        val MAX_HEIGHT = 0.meters
+        val MAX_HEIGHT = 1.meters
         val MIN_HEIGHT = 0.meters
     }
 }
