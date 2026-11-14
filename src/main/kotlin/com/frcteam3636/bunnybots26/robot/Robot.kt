@@ -7,7 +7,8 @@ import com.frcteam3636.bunnybots26.AutoModes
 import com.frcteam3636.bunnybots26.Dashboard
 import com.frcteam3636.bunnybots26.Diagnostics
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain
-import com.frcteam3636.bunnybots26.subsystems.intake.Intake
+import com.frcteam3636.bunnybots26.subsystems.manipulator.Manipulator
+import com.frcteam3636.bunnybots26.subsystems.pivot.Pivot
 import com.frcteam3636.version.BUILD_DATE
 import com.frcteam3636.version.DIRTY
 import com.frcteam3636.version.GIT_BRANCH
@@ -157,7 +158,8 @@ object Robot : LoggedRobot() {
     /** Start robot subsystems so that their periodic tasks are run */
     private fun configureSubsystems() {
         Drivetrain.register()
-        Intake.register()
+        Pivot.register()
+        Manipulator.register()
     }
 
 
