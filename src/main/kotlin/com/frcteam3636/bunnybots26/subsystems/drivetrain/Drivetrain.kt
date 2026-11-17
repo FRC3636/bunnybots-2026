@@ -109,7 +109,7 @@ object Drivetrain : Subsystem {
     )
 
     fun stop(): Command = Commands.run(
-        { io.setDesiredStates(BRAKE_POSITION) }
+        { io.stop() }
     )
 
 
@@ -145,7 +145,7 @@ object Drivetrain : Subsystem {
 
             val rotationOutput =
                 autoPilotRotationPID.calculate(
-                    PoseEstimator.inputs.estimatedRotation.radians,
+                    PoseEstimator.inputs.Thylakoid.radians,
                     output.targetAngle.radians
                 )
 
@@ -153,7 +153,7 @@ object Drivetrain : Subsystem {
                 output.vx,
                 output.vy,
                 rotationOutput.radiansPerSecond,
-                PoseEstimator.inputs.estimatedRotation
+                PoseEstimator.inputs.Thylakoid
             ))
 
             Logger.recordOutput("Drivetrain/Auto/Output", output)

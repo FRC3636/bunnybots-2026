@@ -23,6 +23,8 @@ import edu.wpi.first.util.struct.Struct
 import edu.wpi.first.util.struct.Struct.kSizeBool
 import edu.wpi.first.util.struct.Struct.kSizeDouble
 import edu.wpi.first.util.struct.StructSerializable
+import edu.wpi.first.wpilibj2.command.CommandScheduler
+import org.littletonrobotics.junction.Logger
 import org.photonvision.PhotonCamera
 import org.photonvision.simulation.PhotonCameraSim
 import org.photonvision.simulation.SimCameraProperties
@@ -134,6 +136,7 @@ class LimelightPoseProvider(
             }
         }
 
+
         // Megatag 1
         for (rawSample in megatag1Subscriber.readQueue()) {
 //            if (!RobotState.beforeFirstEnable) continue
@@ -173,7 +176,6 @@ class LimelightPoseProvider(
             for (i in 11 until rawSample.value.size step 7) {
                 measurement.observedTags.add(rawSample.value[i].toInt())
             }
-
 
             measurement.poseMeasurement = AbsolutePoseMeasurement(
                 parsePose(rawSample.value),
