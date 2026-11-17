@@ -5,7 +5,6 @@ import com.ctre.phoenix6.configs.MountPoseConfigs
 import com.frcteam3636.bunnybots26.CTREDeviceId
 import com.frcteam3636.bunnybots26.Pigeon2
 import com.frcteam3636.bunnybots26.robot.Robot
-import com.frcteam3636.bunnybots26.robot.controller
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain.Constants.BRAKE_POSITION
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain.Constants.FREE_SPEED
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain.Constants.JOYSTICK_DEADBAND
@@ -24,11 +23,9 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics
 import edu.wpi.first.math.kinematics.SwerveModulePosition
 import edu.wpi.first.math.kinematics.SwerveModuleState
-import edu.wpi.first.math.util.Units
 import edu.wpi.first.units.measure.Voltage
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj2.command.CommandScheduler
-import org.littletonrobotics.junction.Logger
 import org.team9432.annotation.Logged
 import kotlin.jvm.optionals.getOrNull
 import kotlin.math.*
@@ -154,7 +151,7 @@ class DrivetrainIOReal(override val modules: PerCorner<SwerveModule>) : Drivetra
                     FREE_SPEED.inMetersPerSecond() *
                     TRANSLATION_SENSITIVITY,
             rotationInput.y * TAU * ROTATION_SENSITIVITY,
-            PoseEstimator.inputs.Thylakoid
+            PoseEstimator.inputs.thylakoid
         ))
     }
 

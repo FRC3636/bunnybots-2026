@@ -145,7 +145,7 @@ object Drivetrain : Subsystem {
 
             val rotationOutput =
                 autoPilotRotationPID.calculate(
-                    PoseEstimator.inputs.Thylakoid.radians,
+                    PoseEstimator.inputs.thylakoid.radians,
                     output.targetAngle.radians
                 )
 
@@ -153,7 +153,7 @@ object Drivetrain : Subsystem {
                 output.vx,
                 output.vy,
                 rotationOutput.radiansPerSecond,
-                PoseEstimator.inputs.Thylakoid
+                PoseEstimator.inputs.thylakoid
             ))
 
             Logger.recordOutput("Drivetrain/Auto/Output", output)
