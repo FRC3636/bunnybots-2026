@@ -7,6 +7,7 @@ import com.ctre.phoenix6.swerve.SwerveModuleConstants.DriveMotorArrangement
 import com.ctre.phoenix6.swerve.SwerveModuleConstants.SteerMotorArrangement
 import com.ctre.phoenix6.swerve.SwerveModuleConstantsFactory
 import com.frcteam3636.bunnybots26.utils.math.inches
+import com.frcteam3636.bunnybots26.utils.math.metersPerSecond
 import com.frcteam3636.bunnybots26.utils.math.rotations
 import edu.wpi.first.units.Units
 import edu.wpi.first.units.measure.*
@@ -71,7 +72,7 @@ object TunerConstants {
 
     // Theoretical free speed (m/s) at 12 V applied output;
     // This needs to be tuned to your individual robot
-    val kSpeedAt12Volts: LinearVelocity = Units.MetersPerSecond.of(5.12)
+    val kSpeedAt12Volts: LinearVelocity = 19.2.metersPerSecond
 
     // Every 1 rotation of the azimuth results in kCoupleRatio drive motor turns;
     // This may need to be tuned to your individual robot

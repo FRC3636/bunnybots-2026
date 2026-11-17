@@ -31,7 +31,7 @@ fun configureBindings() {
 //        joystickRight.hid
 //    )
 
-    Drivetrain.defaultCommand = Drivetrain.driveWithNintendoController(controller)
+    Drivetrain.defaultCommand = Drivetrain.driveWithXboxController(controller)
 
     /* zeroing commands */
 

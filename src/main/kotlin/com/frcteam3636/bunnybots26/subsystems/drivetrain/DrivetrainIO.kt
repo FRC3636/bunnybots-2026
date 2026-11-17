@@ -25,6 +25,7 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics
 import edu.wpi.first.math.kinematics.SwerveModulePosition
 import edu.wpi.first.math.kinematics.SwerveModuleState
+import edu.wpi.first.math.util.Units
 import edu.wpi.first.units.measure.Voltage
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj2.command.CommandScheduler
@@ -146,13 +147,6 @@ class DrivetrainIOReal(override val modules: PerCorner<SwerveModule>) : Drivetra
     }
 
     override fun driveWithoutDeadband(translationInput: Translation2d, rotationInput: Translation2d) {
-        Logger.recordOutput("Debug/rotationInputY", rotationInput.y)
-        Logger.recordOutput("Debug/translationInputX", translationInput.x)
-        Logger.recordOutput("Debug/translationInputY", translationInput.y)
-        Logger.recordOutput("Debug/rawLeftX",  controller.leftX)
-        Logger.recordOutput("Debug/rawLeftY",  controller.leftY)
-        Logger.recordOutput("Debug/rawRightX", controller.rightX)
-        Logger.recordOutput("Debug/rawRightY", controller.rightY)
         setDesiredSpeeds(ChassisSpeeds.fromFieldRelativeSpeeds(
             calculateInputCurve(translationInput.x) *
                     FREE_SPEED.inMetersPerSecond() *

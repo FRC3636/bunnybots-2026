@@ -91,7 +91,7 @@ object Drivetrain : Subsystem {
     @Suppress("unused")
     fun driveWithXboxController(controller: CommandXboxController): Command = run {
         val translationInput = Translation2d(controller.leftY, controller.leftX)
-        val rotationInput = Translation2d(controller.rightX, controller.rightY)
+        val rotationInput = Translation2d(controller.rightY, controller.rightX)
 
         io.drive(translationInput, rotationInput)
     }
