@@ -72,7 +72,7 @@ class DrivetrainIOReal(override val modules: PerCorner<SwerveModule>) : Drivetra
 
     private val gyroConfig: MountPoseConfigs =
         MountPoseConfigs()
-            .withMountPoseYaw(0.0)
+            .withMountPoseYaw(180.0)
             .withMountPosePitch(0.0)
             .withMountPoseRoll(0.0)
     override val gyro = GyroPigeon(Pigeon2(CTREDeviceId.PigeonGyro).apply{gyroConfig})
@@ -196,7 +196,7 @@ class DrivetrainIOReal(override val modules: PerCorner<SwerveModule>) : Drivetra
             }
         } else if (shouldStraight) {
             for ((i, element) in MODULE_POSITIONS.withIndex()) {
-                modules[i].characterize(voltage, element.position.rotation.unaryMinus().measure)
+                modules[i].characterize(voltage, Rotation2d.kZero.measure)
             }
         } else {
             for (module in modules) {

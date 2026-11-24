@@ -2,13 +2,14 @@ package com.frcteam3636.bunnybots26.subsystems.poseEstimator
 
 import com.frcteam3636.bunnybots26.robot.Robot
 import edu.wpi.first.apriltag.AprilTagFieldLayout
-import edu.wpi.first.apriltag.AprilTagFields
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
+import edu.wpi.first.wpilibj.Filesystem
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.Commands
 import edu.wpi.first.wpilibj2.command.Subsystem
 import org.littletonrobotics.junction.Logger
+import java.io.File
 
 object PoseEstimator : Subsystem {
 
@@ -20,7 +21,8 @@ object PoseEstimator : Subsystem {
 
     val inputs = LoggedPoseEstimatorInputs()
 
-    val FIELD_LAYOUT: AprilTagFieldLayout = AprilTagFieldLayout.loadField(AprilTagFields.kDefaultField)
+    val FIELD_LAYOUT: AprilTagFieldLayout = AprilTagFieldLayout(Filesystem.getDeployDirectory().path + "/2026-bunnybots-v1.json")
+//    val FIELD_LAYOUT: AprilTagFieldLayout = AprilTagFieldLayout.loadField(AprilTagFields.kDefaultField)
 
     override fun periodic() {
         io.clearVisionMeasurementData(inputs)

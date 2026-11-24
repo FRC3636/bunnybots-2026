@@ -41,10 +41,6 @@ class PoseEstimatorIOReal : PoseEstimatorIO {
             LimelightPoseProvider("limelight-left", { poseEstimator.estimatedPosition.rotation }, { Drivetrain.inputs.gyroVelocity }, { Drivetrain.inputs.gyroConnected }, isLL4 = true),
         "Right" to
             LimelightPoseProvider("limelight-right",{ poseEstimator.estimatedPosition.rotation }, { Drivetrain.inputs.gyroVelocity }, { Drivetrain.inputs.gyroConnected }, isLL4 = true),
-        "LeftTrig" to
-            TrigSolverPoseProvider("limelight-left",LEFT_CAMERA_TRANSFORM,{ poseEstimator.estimatedPosition.rotation },{ Drivetrain.inputs.gyroVelocity }, isLL4 = true),
-        "RightTrig" to
-            TrigSolverPoseProvider("limelight-right",RIGHT_CAMERA_TRANSFORM,{ poseEstimator.estimatedPosition.rotation },{ Drivetrain.inputs.gyroVelocity }, isLL4 = true),
     ).mapValues { Pair(it.value, LoggedAbsolutePoseProviderInputs()) }
 
     private val acceptedVisionMeasurements = mutableListOf<AbsolutePoseMeasurement>()

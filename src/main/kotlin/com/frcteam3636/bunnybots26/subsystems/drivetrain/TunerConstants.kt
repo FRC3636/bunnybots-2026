@@ -6,6 +6,7 @@ import com.ctre.phoenix6.swerve.SwerveModuleConstants
 import com.ctre.phoenix6.swerve.SwerveModuleConstants.DriveMotorArrangement
 import com.ctre.phoenix6.swerve.SwerveModuleConstants.SteerMotorArrangement
 import com.ctre.phoenix6.swerve.SwerveModuleConstantsFactory
+import com.frcteam3636.bunnybots26.utils.math.feetPerSecond
 import com.frcteam3636.bunnybots26.utils.math.inches
 import com.frcteam3636.bunnybots26.utils.math.metersPerSecond
 import com.frcteam3636.bunnybots26.utils.math.rotations
@@ -26,10 +27,10 @@ object TunerConstants {
     // When using closed-loop control, the drive motor uses the control
     // output type specified by SwerveModuleConstants.DriveMotorClosedLoopOutput
     val driveGains: Slot0Configs? = Slot0Configs()
-        .withKP(0.1).withKI(0.0).withKD(0.0)
-        .withKS(0.0).withKV(0.124).withKA(0.0)
-//        .withKP(0.7433).withKI(0.0).withKD(0.0)
-//        .withKS(0.19991).withKV(0.63508).withKA(0.07864)
+//        .withKP(0.1).withKI(0.0).withKD(0.0)
+//        .withKS(0.0).withKV(0.124).withKA(0.0)
+        .withKP(0.75).withKI(0.0).withKD(0.0)
+        .withKS(0.19991).withKV(0.63508).withKA(0.07864)
 
     // The closed-loop output type to use for the steer motors;
     // This affects the PID/FF gains for the steer motors
@@ -72,7 +73,7 @@ object TunerConstants {
 
     // Theoretical free speed (m/s) at 12 V applied output;
     // This needs to be tuned to your individual robot
-    val kSpeedAt12Volts: LinearVelocity = 19.2.metersPerSecond
+    val kSpeedAt12Volts: LinearVelocity = 5.91.metersPerSecond
 
     // Every 1 rotation of the azimuth results in kCoupleRatio drive motor turns;
     // This may need to be tuned to your individual robot
