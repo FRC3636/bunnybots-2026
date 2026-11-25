@@ -126,6 +126,7 @@ class PoseEstimatorIOReal : PoseEstimatorIO {
                 when {
                     m.isLowQuality -> reject(inputs, m)
                     m.pose.x < 0.0 || m.pose.y < 0.0 -> reject(inputs, m)
+                    m.pose.x == 0.0 && m.pose.y == 0.0 -> reject(inputs, m)
                     m.pose.x > FIELD_LAYOUT.fieldLength || m.pose.y > FIELD_LAYOUT.fieldWidth -> reject(inputs, m)
                     !Robot.isEnabled && abs(MathUtil.angleModulus(m.pose.rotation.radians - poseEstimator.estimatedPosition.rotation.radians)) > 0.0872 -> reject(inputs, m)
                     else -> accept(inputs, m)

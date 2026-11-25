@@ -29,6 +29,7 @@ import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.math.kinematics.SwerveModuleState
+import edu.wpi.first.units.measure.Distance
 import edu.wpi.first.wpilibj.Joystick
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.Commands
@@ -37,7 +38,10 @@ import edu.wpi.first.wpilibj2.command.button.CommandXboxController
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import org.littletonrobotics.junction.Logger
 import kotlin.math.abs
+import kotlin.math.atan2
 import kotlin.math.hypot
+import kotlin.math.pow
+import kotlin.math.sqrt
 
 object Drivetrain : Subsystem {
     private val io =
@@ -91,7 +95,7 @@ object Drivetrain : Subsystem {
     @Suppress("unused")
     fun driveWithXboxController(controller: CommandXboxController): Command = run {
         val translationInput = Translation2d(controller.leftY, controller.leftX)
-        val rotationInput = Translation2d(controller.rightY, controller.rightX)
+        val rotationInput = Translation2d(-controller.rightY, -controller.rightX)
 
         io.drive(translationInput, rotationInput)
     }
@@ -118,9 +122,9 @@ object Drivetrain : Subsystem {
 
     val autoPilotProfile: APProfile =
         APProfile(autoPilotConstraints)
-            .withErrorXY(30.centimeters)
-            .withErrorTheta(10.degrees)
-            .withBeelineRadius(20.centimeters)
+            .withErrorXY(15.centimeters)
+            .withErrorTheta(5.degrees)
+            .withBeelineRadius(40.centimeters)
 
     var autoPilot = Autopilot(autoPilotProfile)
 
@@ -163,6 +167,19 @@ object Drivetrain : Subsystem {
         }
             .until { autoPilot.atTarget(PoseEstimator.inputs.estimatedPose, target) }
             .finallyDo { -> io.setDesiredStates(BRAKE_POSITION) }
+    }
+
+    fun autoAlign(targetPose: Translation2d, distance: Distance): Command {
+        val currentPose = PoseEstimator.inputs.estimatedPose
+        val robotToTargetDistance = sqrt((targetPose.y - currentPose.y).pow(2) + (currentPose.x + currentPose.x).pow(2))
+        val distanceRatio = distance / robotToTargetDistance
+        val endTranslation = Translation2d(-(targetPose.x - currentPose.x) * distanceRatio.inMeters() + targetPose.x, -(targetPose.y - currentPose.y) * distanceRatio.inMeters() + targetPose.y)
+        val endRotation = atan2(currentPose.y - targetPose.y, currentPose.x - targetPose.x)
+        return alignWithAutopilot (
+            APTargetWithTolerance (
+                Pose2d( endTranslation, Rotation2d(endRotation.radians) )
+            )
+        )
     }
 
     fun alignAndFlip(target: APTarget, flipH: Boolean, flipV: Boolean): Command {
@@ -323,13 +340,13 @@ object Drivetrain : Subsystem {
 
         val MODULE_POSITIONS = PerCorner(
             frontLeft =
-                Corner(Pose2d(Translation2d(FRONT_LEFT_CONSTANTS.LocationX, FRONT_LEFT_CONSTANTS.LocationY), Rotation2d.kZero), FRONT_LEFT_MAGNET_OFFSET),
+                Corner(Pose2d(Translation2d(FRONT_LEFT_CONSTANTS.LocationX, FRONT_LEFT_CONSTANTS.LocationY), Rotation2d.k180deg), FRONT_LEFT_MAGNET_OFFSET),
             frontRight =
-                Corner(Pose2d(Translation2d(FRONT_RIGHT_CONSTANTS.LocationX, FRONT_RIGHT_CONSTANTS.LocationY), Rotation2d.kZero), FRONT_RIGHT_MAGNET_OFFSET),
+                Corner(Pose2d(Translation2d(FRONT_RIGHT_CONSTANTS.LocationX, FRONT_RIGHT_CONSTANTS.LocationY), Rotation2d.k180deg), FRONT_RIGHT_MAGNET_OFFSET),
             backLeft =
-                Corner(Pose2d(Translation2d(BACK_LEFT_CONSTANTS.LocationX, BACK_LEFT_CONSTANTS.LocationY), Rotation2d.kZero), BACK_LEFT_MAGNET_OFFSET),
+                Corner(Pose2d(Translation2d(BACK_LEFT_CONSTANTS.LocationX, BACK_LEFT_CONSTANTS.LocationY), Rotation2d.k180deg), BACK_LEFT_MAGNET_OFFSET),
             backRight =
-                Corner(Pose2d(Translation2d(BACK_RIGHT_CONSTANTS.LocationX, BACK_RIGHT_CONSTANTS.LocationY), Rotation2d.kZero), BACK_RIGHT_MAGNET_OFFSET),
+                Corner(Pose2d(Translation2d(BACK_RIGHT_CONSTANTS.LocationX, BACK_RIGHT_CONSTANTS.LocationY), Rotation2d.k180deg), BACK_RIGHT_MAGNET_OFFSET),
         )
 
         val MODULE_CAN_IDS = PerCorner(
@@ -354,14 +371,11 @@ object Drivetrain : Subsystem {
 
         val FREE_SPEED = TunerConstants.kSpeedAt12Volts
 
-        val PATH_FOLLOWING_TRANSLATION_GAINS = PIDGains(8.0, 0.0, 0.0)
-        val PATH_FOLLOWING_ROTATION_GAINS = PIDGains(10.0, 0.0, 0.0)
-
         val BRAKE_POSITION =
             MODULE_POSITIONS.map { module -> SwerveModuleState(0.0, module.position.translation.angle) }
 
         val ALIGN_TARGET = APTargetWithTolerance(
-            Pose2d(Translation2d((546.87 + 48.0).inches, 158.3.inches), Rotation2d.k180deg)
+            Pose2d(Translation2d(15.meters, 3.98.meters), Rotation2d.kZero)
         )
     }
 }

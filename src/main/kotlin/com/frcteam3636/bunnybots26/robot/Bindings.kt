@@ -3,6 +3,7 @@ package com.frcteam3636.bunnybots26.robot
 import com.ctre.phoenix6.SignalLogger
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain
 import com.frcteam3636.bunnybots26.utils.autos.APTargetWithTolerance
+import com.frcteam3636.bunnybots26.utils.math.inches
 import com.frcteam3636.bunnybots26.utils.math.meters
 import com.frcteam3636.bunnybots26.utils.math.radians
 import com.revrobotics.util.StatusLogger
@@ -28,9 +29,11 @@ val controllerDev = CommandXboxController(4)
 fun configureBindings() {
 
     /* main bindings */
-    joystickRight.button(1).whileTrue(
-        Drivetrain.alignWithAutopilot(APTargetWithTolerance(Pose2d(13.34, 4.03, Rotation2d.kZero)))
+
+    controller.rightTrigger().whileTrue(
+        Drivetrain.alignWithAutopilot(Drivetrain.Constants.ALIGN_TARGET)
     )
+
     /*  default commands   */
 
 //    Drivetrain.defaultCommand = Drivetrain.driveWithJoysticks (

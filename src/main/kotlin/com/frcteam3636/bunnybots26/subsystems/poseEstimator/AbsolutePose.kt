@@ -236,7 +236,7 @@ class LimelightPoseProvider(
         /**
          * The acceptable ambiguity for a single-tag reading on MegaTag v1.
          */
-        private const val AMBIGUITY_THRESHOLD = 0.3
+        private const val AMBIGUITY_THRESHOLD = 0.85
 
         /**
          * The amount of time (in milliseconds) an update before considering the camera to be disconnected.

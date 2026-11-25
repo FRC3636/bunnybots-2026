@@ -6,13 +6,16 @@ import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.wpilibj.Filesystem
 import edu.wpi.first.wpilibj2.command.Command
+import edu.wpi.first.wpilibj2.command.CommandScheduler
 import edu.wpi.first.wpilibj2.command.Commands
 import edu.wpi.first.wpilibj2.command.Subsystem
 import org.littletonrobotics.junction.Logger
+import org.photonvision.PhotonCamera
 import java.io.File
 
 object PoseEstimator : Subsystem {
-
+    private var camera = PhotonCamera("objectDetection")
+    private var hb = 0
     private val io: PoseEstimatorIO =
         when (Robot.model) {
             Robot.Model.SIMULATION -> PoseEstimatorIOSim()
@@ -28,6 +31,10 @@ object PoseEstimator : Subsystem {
         io.clearVisionMeasurementData(inputs)
         io.updateInputs(inputs)
         Logger.processInputs("Vision", inputs)
+
+        if(hb++ % 100.0 == 0.0){
+            camera.takeInputSnapshot()
+        }
     }
 
     fun resetPose(pose: Pose2d): Command = Commands.runOnce(
