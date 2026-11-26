@@ -30,9 +30,9 @@ fun configureBindings() {
 
     /* main bindings */
 
-    controller.rightTrigger().whileTrue(
-        Drivetrain.alignWithAutopilot(Drivetrain.Constants.ALIGN_TARGET)
-    )
+//    controller.rightTrigger().whileTrue(
+//        Drivetrain.alignWithAutopilot(Drivetrain.Constants.ALIGN_TARGET)
+//    )
 
     /*  default commands   */
 
@@ -68,7 +68,7 @@ fun configureBindings() {
 
     /* dev bindings */
 
-    if (Preferences.getBoolean("DeveloperMode", true)) {
+    if (Preferences.getBoolean("DeveloperMode", false)) {
         controllerDev.leftBumper().onTrue(
             Commands.runOnce(SignalLogger::start)
                 .andThen(StatusLogger::start)

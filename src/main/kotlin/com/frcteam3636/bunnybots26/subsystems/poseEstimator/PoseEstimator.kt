@@ -15,7 +15,6 @@ import java.io.File
 
 object PoseEstimator : Subsystem {
     private var camera = PhotonCamera("objectDetection")
-    private var hb = 0
     private val io: PoseEstimatorIO =
         when (Robot.model) {
             Robot.Model.SIMULATION -> PoseEstimatorIOSim()
@@ -32,9 +31,6 @@ object PoseEstimator : Subsystem {
         io.updateInputs(inputs)
         Logger.processInputs("Vision", inputs)
 
-        if(hb++ % 100.0 == 0.0){
-            camera.takeInputSnapshot()
-        }
     }
 
     fun resetPose(pose: Pose2d): Command = Commands.runOnce(

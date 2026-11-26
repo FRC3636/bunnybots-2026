@@ -21,7 +21,7 @@ object TunerConstants {
     // output type specified by SwerveModuleConstants.SteerMotorClosedLoopOutput
     val steerGains: Slot0Configs? = Slot0Configs()
         .withKP(100.0).withKI(0.0).withKD(0.5)
-        .withKS(0.1).withKV(2.49).withKA(0.0)
+        .withKS(0.1).withKV(1.79).withKA(0.0)
         .withStaticFeedforwardSign(StaticFeedforwardSignValue.UseClosedLoopSign)
 
     // When using closed-loop control, the drive motor uses the control
@@ -52,7 +52,7 @@ object TunerConstants {
 
     // The stator current at which the wheels start to slip;
     // This needs to be tuned to your individual robot
-    val kSlipCurrent: Current = Units.Amps.of(80.0)
+    val kSlipCurrent: Current = Units.Amps.of(120.0)
 
     val kSteerCurrentLimit: Current = Units.Amps.of(60.0)
 
@@ -73,22 +73,22 @@ object TunerConstants {
 
     // Theoretical free speed (m/s) at 12 V applied output;
     // This needs to be tuned to your individual robot
-    val kSpeedAt12Volts: LinearVelocity = 5.91.metersPerSecond
+    val kSpeedAt12Volts: LinearVelocity = 1.0.metersPerSecond//5.03.metersPerSecond
 
     // Every 1 rotation of the azimuth results in kCoupleRatio drive motor turns;
     // This may need to be tuned to your individual robot
-    private const val kCoupleRatio = 3.857142857142857
+    private const val kCoupleRatio = 3.125
 
-    const val kDriveGearRatio = 6.026785714285714
-    const val kSteerGearRatio = 26.09090909090909
+    const val kDriveGearRatio = 5.902777
+    const val kSteerGearRatio = 18.75
     private val kWheelRadius: Distance = 1.9225.inches
 
-    private const val kInvertLeftSide = false
-    private const val kInvertRightSide = true
+    private const val kInvertLeftSide = true
+    private const val kInvertRightSide = false
 
     // These are only used for simulation
     private val kSteerInertia: MomentOfInertia = Units.KilogramSquareMeters.of(0.01)
-    private val kDriveInertia: MomentOfInertia = Units.KilogramSquareMeters.of(0.01)
+    private val kDriveInertia: MomentOfInertia = Units.KilogramSquareMeters.of(0.035)
 
     // Simulated voltage necessary to overcome friction
     private val kSteerFrictionVoltage: Voltage = Units.Volts.of(0.2)
@@ -122,7 +122,7 @@ object TunerConstants {
     private const val kFrontLeftDriveMotorId = 1
     private const val kFrontLeftSteerMotorId = 5
     private const val kFrontLeftEncoderId = 9
-    private val kFrontLeftEncoderOffset = (-0.333251953125).rotations
+    private val kFrontLeftEncoderOffset = (-0.32666015625).rotations
     private const val kFrontLeftSteerMotorInverted = false
     private const val kFrontLeftEncoderInverted = false
 
@@ -133,7 +133,7 @@ object TunerConstants {
     private const val kFrontRightDriveMotorId = 4
     private const val kFrontRightSteerMotorId = 8
     private const val kFrontRightEncoderId = 12
-    private val kFrontRightEncoderOffset: Angle = 0.138671875.rotations
+    private val kFrontRightEncoderOffset: Angle = 0.142333984375.rotations
     private const val kFrontRightSteerMotorInverted = false
     private const val kFrontRightEncoderInverted = false
 
@@ -144,7 +144,7 @@ object TunerConstants {
     private const val kBackLeftDriveMotorId = 2
     private const val kBackLeftSteerMotorId = 6
     private const val kBackLeftEncoderId = 10
-    private val kBackLeftEncoderOffset: Angle = (-0.003662109375).rotations
+    private val kBackLeftEncoderOffset: Angle = (-0.016357421875).rotations
     private const val kBackLeftSteerMotorInverted = false
     private const val kBackLeftEncoderInverted = false
 
@@ -155,7 +155,7 @@ object TunerConstants {
     private const val kBackRightDriveMotorId = 3
     private const val kBackRightSteerMotorId = 7
     private const val kBackRightEncoderId = 11
-    private val kBackRightEncoderOffset: Angle = (-0.118408203125).rotations
+    private val kBackRightEncoderOffset: Angle = (0.432373046875).rotations
     private const val kBackRightSteerMotorInverted = false
     private const val kBackRightEncoderInverted = false
 
