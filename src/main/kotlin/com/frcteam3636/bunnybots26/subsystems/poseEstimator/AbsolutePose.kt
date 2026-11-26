@@ -83,14 +83,12 @@ class LimelightPoseProvider(
     private val tySubscriber = table.getDoubleTopic("ty").subscribe(0.0)
     private val tvSubscriber = table.getIntegerTopic("tv").subscribe(0)
     private val megatag1Subscriber = table.getDoubleArrayTopic("botpose_wpiblue").subscribe(doubleArrayOf())
-    private val megatag2Subscriber =
-        table.getDoubleArrayTopic("botpose_orb_wpiblue").subscribe(doubleArrayOf())
+    private val megatag2Subscriber = table.getDoubleArrayTopic("botpose_orb_wpiblue").subscribe(doubleArrayOf())
     private val gyroPublisher = table.getDoubleArrayTopic("robot_orientation_set").publish()
     private val throttlePublisher = table.getIntegerTopic("throttle_set").publish()
     private val imuModePublisher = table.getIntegerTopic("imumode_set").publish()
     private val imuAlphaPublisher = table.getDoubleTopic("imuassistalpha_set").publish()
 
-    //    private var loopsSinceLastSeen: Int = 0
     private var connected = false
 
     private var gyroState = DoubleArray(6)
@@ -238,7 +236,7 @@ class LimelightPoseProvider(
         /**
          * The acceptable ambiguity for a single-tag reading on MegaTag v1.
          */
-        private const val AMBIGUITY_THRESHOLD = 0.3
+        private const val AMBIGUITY_THRESHOLD = 0.85
 
         /**
          * The amount of time (in milliseconds) an update before considering the camera to be disconnected.

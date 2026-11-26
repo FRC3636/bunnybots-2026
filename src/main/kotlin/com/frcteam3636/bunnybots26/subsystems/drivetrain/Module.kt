@@ -7,6 +7,7 @@ import com.ctre.phoenix6.controls.PositionVoltage
 import com.ctre.phoenix6.controls.VelocityVoltage
 import com.ctre.phoenix6.controls.VoltageOut
 import com.ctre.phoenix6.signals.FeedbackSensorSourceValue
+import com.ctre.phoenix6.signals.InvertedValue
 import com.ctre.phoenix6.signals.NeutralModeValue
 import com.ctre.phoenix6.signals.StaticFeedforwardSignValue
 import com.frcteam3636.bunnybots26.CANcoder
@@ -115,17 +116,22 @@ class Mk5nSwerveModule(
         get() = turningMotor.signals + drivingMotor.signals
 
     override fun periodic() {
-        validTimestamps = timestampQueue.size
+        drivingMotor.periodic()
+        turningMotor.periodic()
+        odometryTurnPositions = turningMotor.odometryTurnPositions
+        odometryDrivePositions = drivingMotor.odometryDrivePositions
+
+        validTimestamps = minOf(
+            timestampQueue.size,
+            odometryDrivePositions.size,
+            odometryTurnPositions.size,
+            maxQueueSize
+        )
 
         // Fill the odometryTimestamps array in-place
         for ((i, timestamp) in timestampQueue.withIndex()) {
             odometryTimestamps[i] = timestamp
         }
-
-        drivingMotor.periodic()
-        turningMotor.periodic()
-        odometryTurnPositions = turningMotor.odometryTurnPositions
-        odometryDrivePositions = drivingMotor.odometryDrivePositions
 
         // Update positions in-place
         @Suppress("EmptyRange") // for some reason intellij determines this using the default value lol
@@ -164,10 +170,14 @@ interface SwerveTurningMotor {
     fun periodic() {}
 }
 
-class DrivingTalon(id: CTREDeviceId) : SwerveDrivingMotor {
+class DrivingTalon(id: CTREDeviceId, inverted: Boolean = false) : SwerveDrivingMotor {
 
     private val inner = TalonFX(id).apply {
         configurator.apply(TalonFXConfiguration().apply {
+            MotorOutput.apply {
+                Inverted = if (inverted) InvertedValue.Clockwise_Positive
+                else InvertedValue.CounterClockwise_Positive
+            }
             Slot0.apply {
                 pidGains = DRIVING_PID_GAINS
                 motorFFGains = DRIVING_FF_GAINS

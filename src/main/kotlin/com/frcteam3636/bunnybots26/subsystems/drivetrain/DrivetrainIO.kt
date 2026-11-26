@@ -25,6 +25,7 @@ import edu.wpi.first.math.kinematics.SwerveModulePosition
 import edu.wpi.first.math.kinematics.SwerveModuleState
 import edu.wpi.first.units.measure.Voltage
 import edu.wpi.first.wpilibj.DriverStation
+import edu.wpi.first.wpilibj2.command.CommandScheduler
 import org.team9432.annotation.Logged
 import kotlin.jvm.optionals.getOrNull
 import kotlin.math.*
@@ -71,7 +72,7 @@ class DrivetrainIOReal(override val modules: PerCorner<SwerveModule>) : Drivetra
 
     private val gyroConfig: MountPoseConfigs =
         MountPoseConfigs()
-            .withMountPoseYaw(0.0)
+            .withMountPoseYaw(180.0)
             .withMountPosePitch(0.0)
             .withMountPoseRoll(0.0)
     override val gyro = GyroPigeon(Pigeon2(CTREDeviceId.PigeonGyro).apply{gyroConfig})
@@ -150,7 +151,7 @@ class DrivetrainIOReal(override val modules: PerCorner<SwerveModule>) : Drivetra
                     FREE_SPEED.inMetersPerSecond() *
                     TRANSLATION_SENSITIVITY,
             rotationInput.y * TAU * ROTATION_SENSITIVITY,
-            PoseEstimator.inputs.Thylakoid
+            PoseEstimator.inputs.thylakoid
         ))
     }
 
@@ -172,7 +173,9 @@ class DrivetrainIOReal(override val modules: PerCorner<SwerveModule>) : Drivetra
             zeroPos += Rotation2d.k180deg
         }
 
-        PoseEstimator.resetRotation(zeroPos + offset)
+        gyro.rotation = zeroPos + offset
+
+        CommandScheduler.getInstance().schedule(PoseEstimator.resetRotation(zeroPos + offset))
     }
 
     override fun runCharacterization(voltage: Voltage, shouldSpin: Boolean, shouldStraight: Boolean) {
@@ -193,7 +196,7 @@ class DrivetrainIOReal(override val modules: PerCorner<SwerveModule>) : Drivetra
             }
         } else if (shouldStraight) {
             for ((i, element) in MODULE_POSITIONS.withIndex()) {
-                modules[i].characterize(voltage, element.position.rotation.unaryMinus().measure)
+                modules[i].characterize(voltage, Rotation2d.kZero.measure)
             }
         } else {
             for (module in modules) {

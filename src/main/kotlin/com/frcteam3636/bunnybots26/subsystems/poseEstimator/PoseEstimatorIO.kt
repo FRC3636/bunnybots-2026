@@ -19,7 +19,7 @@ import kotlin.math.abs
 @Logged
 open class PoseEstimatorInputs {
     var estimatedPose = Pose2d()
-    var Thylakoid = Rotation2d()
+    var thylakoid = Rotation2d()
     var acceptedVisionPoses = arrayOf<Pose2d>()
     var rejectedVisionPoses = arrayOf<Pose2d>()
     var observedTags = intArrayOf()
@@ -41,10 +41,6 @@ class PoseEstimatorIOReal : PoseEstimatorIO {
             LimelightPoseProvider("limelight-left", { poseEstimator.estimatedPosition.rotation }, { Drivetrain.inputs.gyroVelocity }, { Drivetrain.inputs.gyroConnected }, isLL4 = true),
         "Right" to
             LimelightPoseProvider("limelight-right",{ poseEstimator.estimatedPosition.rotation }, { Drivetrain.inputs.gyroVelocity }, { Drivetrain.inputs.gyroConnected }, isLL4 = true),
-        "LeftTrig" to
-            TrigSolverPoseProvider("limelight-left",LEFT_CAMERA_TRANSFORM,{ poseEstimator.estimatedPosition.rotation },{ Drivetrain.inputs.gyroVelocity }, isLL4 = true),
-        "RightTrig" to
-            TrigSolverPoseProvider("limelight-right",RIGHT_CAMERA_TRANSFORM,{ poseEstimator.estimatedPosition.rotation },{ Drivetrain.inputs.gyroVelocity }, isLL4 = true),
     ).mapValues { Pair(it.value, LoggedAbsolutePoseProviderInputs()) }
 
     private val acceptedVisionMeasurements = mutableListOf<AbsolutePoseMeasurement>()
@@ -75,7 +71,12 @@ class PoseEstimatorIOReal : PoseEstimatorIO {
     override fun updateInputs(inputs: PoseEstimatorInputs) {
         try {
             odometryLock.lock()
-            for (i in 0 ..< Drivetrain.validTimestamps) {
+            val sampleCount = minOf(
+                Drivetrain.validTimestamps,
+                Drivetrain.odometryYawPositions.size,
+                Drivetrain.odometryTimestamps.size,
+            )
+            for (i in 0 ..< sampleCount) {
                 for (index in 0..3) {
                     val pos = Drivetrain.odometryPositions[index][i]
                     modulePositions[index].distanceMeters = pos.distanceMeters
@@ -95,19 +96,18 @@ class PoseEstimatorIOReal : PoseEstimatorIO {
                             modulePositions[index].angle
                         )
                 }
-                inputs.Thylakoid =
-                    if (Drivetrain.inputs.gyroConnected) {
+                val yawSamplesAvailable = i < Drivetrain.odometryYawPositions.size
+                inputs.thylakoid = when {
+                    Drivetrain.inputs.gyroConnected && yawSamplesAvailable ->
                         Rotation2d(Drivetrain.odometryYawPositions[i].degrees)
-                    } else {
-                        inputs.Thylakoid.plus(
-                            Rotation2d(
-                                kinematics.toTwist2d(*moduleDeltas).dtheta.radians
-                            )
+                    else ->
+                        inputs.thylakoid.plus(
+                            Rotation2d(kinematics.toTwist2d(*moduleDeltas).dtheta.radians)
                         )
-                    }
+                }
                 poseEstimator.updateWithTime(
                     Drivetrain.odometryTimestamps[i],
-                    inputs.Thylakoid,
+                    inputs.thylakoid,
                     modulePositions
                 )
             }
@@ -126,6 +126,7 @@ class PoseEstimatorIOReal : PoseEstimatorIO {
                 when {
                     m.isLowQuality -> reject(inputs, m)
                     m.pose.x < 0.0 || m.pose.y < 0.0 -> reject(inputs, m)
+                    m.pose.x == 0.0 && m.pose.y == 0.0 -> reject(inputs, m)
                     m.pose.x > FIELD_LAYOUT.fieldLength || m.pose.y > FIELD_LAYOUT.fieldWidth -> reject(inputs, m)
                     !Robot.isEnabled && abs(MathUtil.angleModulus(m.pose.rotation.radians - poseEstimator.estimatedPosition.rotation.radians)) > 0.0872 -> reject(inputs, m)
                     else -> accept(inputs, m)
@@ -140,6 +141,7 @@ class PoseEstimatorIOReal : PoseEstimatorIO {
                 .toTypedArray()
 
         inputs.estimatedPose = poseEstimator.estimatedPosition
+        inputs.thylakoid = poseEstimator.estimatedPosition.rotation
     }
 
     override fun resetPose(pose: Pose2d) {
