@@ -2,9 +2,11 @@ package com.frcteam3636.bunnybots26.subsystems.poseEstimator
 import com.frcteam3636.bunnybots26.robot.Robot
 import com.frcteam3636.bunnybots26.robot.Robot.odometryLock
 import com.frcteam3636.bunnybots26.subsystems.drivetrain.Drivetrain
+import com.frcteam3636.bunnybots26.subsystems.objectPoseEstimator.PhotonObjectPoseProvider
 import com.frcteam3636.bunnybots26.subsystems.poseEstimator.PoseEstimator.FIELD_LAYOUT
 import com.frcteam3636.bunnybots26.utils.math.degrees
 import com.frcteam3636.bunnybots26.utils.math.inSeconds
+import com.frcteam3636.bunnybots26.utils.math.inches
 import com.frcteam3636.bunnybots26.utils.math.meters
 import com.frcteam3636.bunnybots26.utils.math.radians
 import edu.wpi.first.math.MathUtil
@@ -165,6 +167,7 @@ class PoseEstimatorIOReal : PoseEstimatorIO {
     companion object Constants {
         private val LEFT_CAMERA_TRANSFORM: Transform3d = Transform3d(Translation3d(0.meters,0.meters,0.meters), Rotation3d(Rotation2d(0.degrees)))
         private val RIGHT_CAMERA_TRANSFORM: Transform3d = Transform3d(Translation3d(0.meters,0.meters,0.meters), Rotation3d(Rotation2d(0.degrees)))
+        private val PHOTON_VISION_TRANSFORM: Transform3d = Transform3d( Translation3d(0.0.inches,11.5.inches, 26.5.inches), Rotation3d())
     }
 }
 
